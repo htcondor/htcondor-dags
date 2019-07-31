@@ -125,3 +125,21 @@ def test_dot_config_not_default(dag_dir):
     assert "DOT dag.dot UPDATE DONT-OVERWRITE INCLUDE include-me.dot" in dagfile_lines(
         dag_dir
     )
+
+
+def test_node_status_file_default(dag_dir):
+    dag = dags.DAG(node_status_file=dags.NodeStatusFile("node_status_file"))
+    dag.write(dag_dir)
+
+    assert "NODE_STATUS_FILE node_status_file"
+
+
+def test_node_status_file_not_default(dag_dir):
+    dag = dags.DAG(
+        node_status_file=dags.NodeStatusFile(
+            "node_status_file", update_time=60, always_update=True
+        )
+    )
+    dag.write(dag_dir)
+
+    assert "NODE_STATUS_FILE node_status_file 60 ALWAYS-UPDATE"
