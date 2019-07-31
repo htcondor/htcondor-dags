@@ -13,5 +13,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .dag import DAG, NodeLayer, SubDAG
+from .dag import DAG, NodeLayer, SubDAG, DotConfig
 from .writer import DAG_FILE_NAME, CONFIG_FILE_NAME

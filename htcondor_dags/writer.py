@@ -93,12 +93,12 @@ class DAGWriter:
             c = self.dag.dot_config
             parts = [
                 "DOT",
-                c.path,
+                c.path.as_posix(),
                 "UPDATE" if c.update else "DONT-UPDATE",
                 "OVERWRITE" if c.overwrite else "DONT-OVERWRITE",
             ]
             if c.include_file is not None:
-                parts.extend(("INCLUDE", c.include_file))
+                parts.extend(("INCLUDE", c.include_file.as_posix()))
             yield " ".join(parts)
 
         for k, v in self.dag.dagman_job_attrs.items():

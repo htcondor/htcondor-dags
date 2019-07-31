@@ -37,22 +37,22 @@ logger.setLevel(logging.DEBUG)
 class DotConfig:
     def __init__(
         self,
-        path: os.PathLike,
+        path: utils.Openable,
         update: bool = False,
         overwrite: bool = True,
-        include_file: Optional[os.PathLike] = None,
+        include_file: Optional[utils.Openable] = None,
     ):
         self.path = Path(path)
         self.update = update
         self.overwrite = overwrite
-        self.include_file = Path(include_file)
+        self.include_file = include_file if include_file is None else Path(include_file)
 
     def __repr__(self):
         return utils.make_repr(self, ("path", "update", "overwrite", "include_file"))
 
 
 class NodeStatusFile:
-    def __init__(self, path: os.PathLike, update_time=None, always_update=False):
+    def __init__(self, path: utils.Openable, update_time=None, always_update=False):
         self.path = Path(path)
         self.update_time = update_time
         self.always_update = always_update
@@ -69,7 +69,7 @@ class WalkOrder(enum.Enum):
 class DAG:
     def __init__(
         self,
-        jobstate_log: Optional[os.PathLike] = None,
+        jobstate_log: Optional[utils.Openable] = None,
         max_jobs_by_category: Optional[Dict[str, int]] = None,
         dagman_config: Optional[Dict[str, Any]] = None,
         dagman_job_attributes: Optional[Dict[str, Any]] = None,
@@ -157,7 +157,7 @@ class DAG:
             stack.extend(node.children)
             yield node
 
-    def write(self, dag_dir: os.PathLike):
+    def write(self, dag_dir: utils.Openable):
         return writer.DAGWriter(self, dag_dir).write()
 
 
@@ -296,7 +296,7 @@ class BaseNode(abc.ABC):
         dag,
         *,
         name: str,
-        dir: Optional[os.PathLike] = None,
+        dir: Optional[utils.Openable] = None,
         noop: bool = False,
         done: bool = False,
         retries: Optional[int] = 0,

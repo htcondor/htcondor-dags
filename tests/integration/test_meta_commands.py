@@ -105,3 +105,23 @@ def test_max_jobs_per_category_with_two_categories(dag_dir):
 
     contents = dagfile_lines(dag_dir)
     assert all(("CATEGORY foo 5" in contents, "CATEGORY bar 10" in contents))
+
+
+def test_dot_config_default(dag_dir):
+    dag = dags.DAG(dot_config=dags.DotConfig("dag.dot"))
+    dag.write(dag_dir)
+
+    assert "DOT dag.dot DONT-UPDATE OVERWRITE" in dagfile_lines(dag_dir)
+
+
+def test_dot_config_not_default(dag_dir):
+    dag = dags.DAG(
+        dot_config=dags.DotConfig(
+            "dag.dot", update=True, overwrite=False, include_file="include-me.dot"
+        )
+    )
+    dag.write(dag_dir)
+
+    assert "DOT dag.dot UPDATE DONT-OVERWRITE INCLUDE include-me.dot" in dagfile_lines(
+        dag_dir
+    )
