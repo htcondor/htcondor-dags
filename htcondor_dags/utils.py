@@ -13,5 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .dag import DAG, NodeLayer, SubDAG
-from .writer import DAGFILE_NAME
+
+def make_repr(obj, attrs):
+    entries = ", ".join(f"{k} = {getattr(obj, k)}" for k in attrs)
+    return f"{obj.__class__.__name__}({repr(entries)})"

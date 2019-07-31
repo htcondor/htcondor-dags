@@ -13,5 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .dag import DAG, NodeLayer, SubDAG
-from .writer import DAGFILE_NAME
+import htcondor_dags as dags
+
+
+def test_empty_dag_writes_empty_dagfile(dag_dir):
+    dag = dags.DAG()
+
+    dag.write(dag_dir)
+
+    # if there are any lines in the file, they must be comments
+    assert all(
+        line.startswith("#")
+        for line in (dag_dir / dags.DAGFILE_NAME).read_text().splitlines()
+    )
