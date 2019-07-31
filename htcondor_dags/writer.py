@@ -25,38 +25,41 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 SEPARATOR = ":"
-DAGFILE_NAME = "dagfile.dag"
+DAG_FILE_NAME = "dagfile.dag"
+CONFIG_FILE_NAME = "dagman.config"
 
 
 class DAGWriter:
     """Not re-entrant!"""
 
-    def __init__(self, dag):
+    def __init__(self, dag, path):
         self.dag = dag
         self.join_counter = itertools.count()
+        self.path = path
 
         self.noop_sub_name = "__JOIN__.sub"
 
-    def write(self, path):
-        path.mkdir(parents=True, exist_ok=True)
-        with (path / DAGFILE_NAME).open(mode="w") as f:
+    def write(self):
+        self.path.mkdir(parents=True, exist_ok=True)
+
+        with (self.path / DAG_FILE_NAME).open(mode="w") as f:
             for line in self.get_lines():
                 f.write(line)
                 f.write("\n")
         for node in self.dag.nodes:
-            self.write_submit_file(node, path)
+            self.write_submit_file(node)
 
-        (path / self.noop_sub_name).touch(exist_ok=True)
+        (self.path / self.noop_sub_name).touch(exist_ok=True)
 
-    def write_submit_file(self, node, path):
-        (path / f"{node.name}.sub").write_text(str(node.submit_description))
+    def write_submit_file(self, node):
+        (self.path / f"{node.name}.sub").write_text(str(node.submit_description))
 
     def get_lines(self):
-        yield "# BEGIN CONFIG"
-        for line in itertools.chain(self._get_dag_config_lines()):
+        yield "# BEGIN META"
+        for line in itertools.chain(self._get_meta_lines()):
             yield line
+        yield "# END META"
 
-        yield "# END CONFIG"
         yield "# BEGIN NODES AND EDGES"
         for node in self.dag.walk(order=dag.WalkOrder.BREADTH_FIRST):
             for line in itertools.chain(
@@ -65,9 +68,14 @@ class DAGWriter:
                 yield line
         yield "# END NODES AND EDGES"
 
-    def _get_dag_config_lines(self):
-        if self.dag.config_file is not None:
-            yield f"CONFIG {self.dag.config_file.as_posix()}"
+    def _write_config_file(self):
+        contents = "\n".join(f"{k} = {v}" for k, v in self.dag.config.items())
+        (self.path / CONFIG_FILE_NAME).write_text(contents)
+
+    def _get_meta_lines(self):
+        if len(self.dag.config) > 0:
+            self._write_config_file()
+            yield f"CONFIG {CONFIG_FILE_NAME}"
 
         if self.dag.jobstate_log is not None:
             yield f"JOBSTATE_LOG {self.dag.jobstate_log.as_posix()}"

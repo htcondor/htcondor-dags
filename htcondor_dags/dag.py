@@ -71,7 +71,7 @@ class DAG:
         self,
         jobstate_log: Optional[os.PathLike] = None,
         max_jobs_by_category: Optional[Dict[str, int]] = None,
-        config_file: Optional[os.PathLike] = None,
+        config: Optional[Dict[str, Any]] = None,
         dot_config: Optional[DotConfig] = None,
         node_status_file: Optional[NodeStatusFile] = None,
     ):
@@ -79,7 +79,7 @@ class DAG:
         self._edges = EdgeStore()
         self.jobstate_log = jobstate_log if jobstate_log is None else Path(jobstate_log)
         self.max_jobs_per_category = max_jobs_by_category or {}
-        self.config_file = config_file if config_file is None else Path(config_file)
+        self.config = config or {}
         self.dot_config = dot_config
         self.node_status_file = node_status_file
 
@@ -156,8 +156,7 @@ class DAG:
             yield node
 
     def write(self, dag_dir: os.PathLike):
-        w = writer.DAGWriter(self)
-        w.write(dag_dir)
+        return writer.DAGWriter(self, dag_dir).write()
 
 
 class DAGAbortCondition:

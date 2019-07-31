@@ -25,7 +25,7 @@ def test_empty_dag_writes_empty_dagfile(dag_dir):
     # if there are any lines in the file, they must be comments
     assert all(
         line.startswith("#")
-        for line in (dag_dir / dags.DAGFILE_NAME).read_text().splitlines()
+        for line in (dag_dir / dags.DAG_FILE_NAME).read_text().splitlines()
     )
 
 
@@ -35,7 +35,7 @@ def test_jobstate_log_as_str(dag_dir):
     dag = dags.DAG(jobstate_log=logfile)
     dag.write(dag_dir)
 
-    assert f"\nJOBSTATE_LOG {logfile}\n" in (dag_dir / dags.DAGFILE_NAME).read_text()
+    assert f"\nJOBSTATE_LOG {logfile}\n" in (dag_dir / dags.DAG_FILE_NAME).read_text()
 
 
 def test_jobstate_log_as_path(dag_dir):
@@ -46,26 +46,29 @@ def test_jobstate_log_as_path(dag_dir):
 
     assert (
         f"\nJOBSTATE_LOG {logfile.as_posix()}\n"
-        in (dag_dir / dags.DAGFILE_NAME).read_text()
+        in (dag_dir / dags.DAG_FILE_NAME).read_text()
     )
 
 
-def test_config_file_as_str(dag_dir):
-    config_file = "i_am_the_config_file.conf"
-
-    dag = dags.DAG(config_file=config_file)
+def test_config_file_gets_written_if_config_given(dag_dir):
+    dag = dags.DAG(config={"DAGMAN_MAX_JOBS_IDLE": 10})
     dag.write(dag_dir)
 
-    assert f"\nCONFIG {config_file}\n" in (dag_dir / dags.DAGFILE_NAME).read_text()
+    assert (dag_dir / dags.CONFIG_FILE_NAME).exists()
 
 
-def test_config_file_as_path(dag_dir):
-    config_file = Path("i_am_the_config_file.conf").absolute()
-
-    dag = dags.DAG(config_file=config_file)
+def test_config_command_gets_written_if_config_given(dag_dir):
+    dag = dags.DAG(config={"DAGMAN_MAX_JOBS_IDLE": 10})
     dag.write(dag_dir)
 
     assert (
-        f"\nCONFIG {config_file.as_posix()}\n"
-        in (dag_dir / dags.DAGFILE_NAME).read_text()
+        f"\nCONFIG {dags.CONFIG_FILE_NAME}\n"
+        in (dag_dir / dags.DAG_FILE_NAME).read_text()
     )
+
+
+def test_config_file_has_right_contents(dag_dir):
+    dag = dags.DAG(config={"DAGMAN_MAX_JOBS_IDLE": 10})
+    dag.write(dag_dir)
+
+    assert "DAGMAN_MAX_JOBS_IDLE = 10" in (dag_dir / dags.CONFIG_FILE_NAME).read_text()

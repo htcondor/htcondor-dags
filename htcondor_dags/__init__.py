@@ -14,4 +14,4 @@
 # limitations under the License.
 
 from .dag import DAG, NodeLayer, SubDAG
-from .writer import DAGFILE_NAME
+from .writer import DAG_FILE_NAME, CONFIG_FILE_NAME
