@@ -1,0 +1,21 @@
+dist: xenial
+sudo: required
+services:
+  - docker
+
+language: python
+python:
+  - "3.6"
+  - "3.7"
+env:
+  - HTCONDOR_VERSION=8.8
+  - HTCONDOR_VERSION=8.9
+
+matrix:
+  fast_finish: true
+
+install:
+  - docker build -t dags-test --file tests/_inf/Dockerfile --build-arg HTCONDOR_VERSION --build-arg PYTHON_VERSION=$TRAVIS_PYTHON_VERSION .
+
+script:
+  - docker run dags-test tests/_inf/travis.sh
