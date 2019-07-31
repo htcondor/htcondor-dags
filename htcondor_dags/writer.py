@@ -104,7 +104,7 @@ class DAGWriter:
         for k, v in self.dag.dagman_job_attrs.items():
             yield f"SET_JOB_ATTR {k} = {v}"
 
-        for category, value in self.dag.max_jobs_per_category:
+        for category, value in self.dag.max_jobs_per_category.items():
             yield f"CATEGORY {category} {value}"
 
     def _get_node_lines(self, node):

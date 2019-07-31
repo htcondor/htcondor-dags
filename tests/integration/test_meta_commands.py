@@ -87,5 +87,21 @@ def test_dagman_job_attributes_with_two_attrs(dag_dir):
     dag.write(dag_dir)
 
     contents = dagfile_lines(dag_dir)
-    assert "SET_JOB_ATTR foo = bar" in contents
-    assert "SET_JOB_ATTR wizard = 17" in contents
+    assert all(
+        ("SET_JOB_ATTR foo = bar" in contents, "SET_JOB_ATTR wizard = 17" in contents)
+    )
+
+
+def test_max_jobs_per_category_with_one_category(dag_dir):
+    dag = dags.DAG(max_jobs_by_category={"foo": 5})
+    dag.write(dag_dir)
+
+    assert "CATEGORY foo 5" in dagfile_lines(dag_dir)
+
+
+def test_max_jobs_per_category_with_two_categories(dag_dir):
+    dag = dags.DAG(max_jobs_by_category={"foo": 5, "bar": 10})
+    dag.write(dag_dir)
+
+    contents = dagfile_lines(dag_dir)
+    assert all(("CATEGORY foo 5" in contents, "CATEGORY bar 10" in contents))
