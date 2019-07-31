@@ -68,13 +68,13 @@ class DAGWriter:
                 yield line
         yield "# END NODES AND EDGES"
 
-    def _write_config_file(self):
-        contents = "\n".join(f"{k} = {v}" for k, v in self.dag.config.items())
+    def _write_dagman_config_file(self):
+        contents = "\n".join(f"{k} = {v}" for k, v in self.dag.dagman_config.items())
         (self.path / CONFIG_FILE_NAME).write_text(contents)
 
     def _get_meta_lines(self):
-        if len(self.dag.config) > 0:
-            self._write_config_file()
+        if len(self.dag.dagman_config) > 0:
+            self._write_dagman_config_file()
             yield f"CONFIG {CONFIG_FILE_NAME}"
 
         if self.dag.jobstate_log is not None:
@@ -100,6 +100,9 @@ class DAGWriter:
             if c.include_file is not None:
                 parts.extend(("INCLUDE", c.include_file))
             yield " ".join(parts)
+
+        for k, v in self.dag.dagman_job_attrs.items():
+            yield f"SET_JOB_ATTR {k} = {v}"
 
         for category, value in self.dag.max_jobs_per_category:
             yield f"CATEGORY {category} {value}"

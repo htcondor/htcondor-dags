@@ -18,15 +18,16 @@ from pathlib import Path
 import htcondor_dags as dags
 
 
+def dagfile_lines(dag_dir):
+    return (dag_dir / dags.DAG_FILE_NAME).read_text().splitlines()
+
+
 def test_empty_dag_writes_empty_dagfile(dag_dir):
     dag = dags.DAG()
     dag.write(dag_dir)
 
     # if there are any lines in the file, they must be comments
-    assert all(
-        line.startswith("#")
-        for line in (dag_dir / dags.DAG_FILE_NAME).read_text().splitlines()
-    )
+    assert all(line.startswith("#") for line in dagfile_lines(dag_dir))
 
 
 def test_jobstate_log_as_str(dag_dir):
@@ -35,7 +36,7 @@ def test_jobstate_log_as_str(dag_dir):
     dag = dags.DAG(jobstate_log=logfile)
     dag.write(dag_dir)
 
-    assert f"\nJOBSTATE_LOG {logfile}\n" in (dag_dir / dags.DAG_FILE_NAME).read_text()
+    assert f"JOBSTATE_LOG {logfile}" in dagfile_lines(dag_dir)
 
 
 def test_jobstate_log_as_path(dag_dir):
@@ -44,21 +45,18 @@ def test_jobstate_log_as_path(dag_dir):
     dag = dags.DAG(jobstate_log=logfile)
     dag.write(dag_dir)
 
-    assert (
-        f"\nJOBSTATE_LOG {logfile.as_posix()}\n"
-        in (dag_dir / dags.DAG_FILE_NAME).read_text()
-    )
+    assert f"JOBSTATE_LOG {logfile.as_posix()}" in dagfile_lines(dag_dir)
 
 
 def test_config_file_gets_written_if_config_given(dag_dir):
-    dag = dags.DAG(config={"DAGMAN_MAX_JOBS_IDLE": 10})
+    dag = dags.DAG(dagman_config={"DAGMAN_MAX_JOBS_IDLE": 10})
     dag.write(dag_dir)
 
     assert (dag_dir / dags.CONFIG_FILE_NAME).exists()
 
 
 def test_config_command_gets_written_if_config_given(dag_dir):
-    dag = dags.DAG(config={"DAGMAN_MAX_JOBS_IDLE": 10})
+    dag = dags.DAG(dagman_config={"DAGMAN_MAX_JOBS_IDLE": 10})
     dag.write(dag_dir)
 
     assert (
@@ -68,7 +66,26 @@ def test_config_command_gets_written_if_config_given(dag_dir):
 
 
 def test_config_file_has_right_contents(dag_dir):
-    dag = dags.DAG(config={"DAGMAN_MAX_JOBS_IDLE": 10})
+    dag = dags.DAG(dagman_config={"DAGMAN_MAX_JOBS_IDLE": 10})
     dag.write(dag_dir)
 
-    assert "DAGMAN_MAX_JOBS_IDLE = 10" in (dag_dir / dags.CONFIG_FILE_NAME).read_text()
+    assert (
+        "DAGMAN_MAX_JOBS_IDLE = 10"
+        in (dag_dir / dags.CONFIG_FILE_NAME).read_text().splitlines()
+    )
+
+
+def test_dagman_job_attributes_with_one_attr(dag_dir):
+    dag = dags.DAG(dagman_job_attributes={"foo": "bar"})
+    dag.write(dag_dir)
+
+    assert "SET_JOB_ATTR foo = bar" in dagfile_lines(dag_dir)
+
+
+def test_dagman_job_attributes_with_two_attrs(dag_dir):
+    dag = dags.DAG(dagman_job_attributes={"foo": "bar", "wizard": 17})
+    dag.write(dag_dir)
+
+    contents = dagfile_lines(dag_dir)
+    assert "SET_JOB_ATTR foo = bar" in contents
+    assert "SET_JOB_ATTR wizard = 17" in contents

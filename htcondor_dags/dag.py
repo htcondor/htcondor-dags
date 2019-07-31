@@ -71,7 +71,8 @@ class DAG:
         self,
         jobstate_log: Optional[os.PathLike] = None,
         max_jobs_by_category: Optional[Dict[str, int]] = None,
-        config: Optional[Dict[str, Any]] = None,
+        dagman_config: Optional[Dict[str, Any]] = None,
+        dagman_job_attributes: Optional[Dict[str, Any]] = None,
         dot_config: Optional[DotConfig] = None,
         node_status_file: Optional[NodeStatusFile] = None,
     ):
@@ -79,7 +80,8 @@ class DAG:
         self._edges = EdgeStore()
         self.jobstate_log = jobstate_log if jobstate_log is None else Path(jobstate_log)
         self.max_jobs_per_category = max_jobs_by_category or {}
-        self.config = config or {}
+        self.dagman_config = dagman_config or {}
+        self.dagman_job_attrs = dagman_job_attributes or {}
         self.dot_config = dot_config
         self.node_status_file = node_status_file
 
