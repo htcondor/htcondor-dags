@@ -27,6 +27,7 @@ logger.setLevel(logging.DEBUG)
 SEPARATOR = ":"
 DAG_FILE_NAME = "dagfile.dag"
 CONFIG_FILE_NAME = "dagman.config"
+NOOP_SUBMIT_FILE_NAME = "__JOIN__.sub"
 
 
 class DAGWriter:
@@ -37,7 +38,7 @@ class DAGWriter:
         self.join_counter = itertools.count()
         self.path = path
 
-        self.noop_sub_name = "__JOIN__.sub"
+        self.has_written_noop_file = False
 
     def write(self):
         self.path.mkdir(parents=True, exist_ok=True)
@@ -47,11 +48,14 @@ class DAGWriter:
                 f.write(line)
                 f.write("\n")
         for node in self.dag.nodes:
-            self.write_submit_file(node)
+            self._write_submit_file(node)
 
-        (self.path / self.noop_sub_name).touch(exist_ok=True)
+    def _write_noop_submit_file(self):
+        if not self.has_written_noop_file:
+            (self.path / NOOP_SUBMIT_FILE_NAME).touch(exist_ok=True)
+            self.has_written_noop_file = True
 
-    def write_submit_file(self, node):
+    def _write_submit_file(self, node):
         (self.path / f"{node.name}.sub").write_text(str(node.submit_description))
 
     def get_lines(self):
@@ -169,7 +173,7 @@ class DAGWriter:
 
     def _get_edge_lines(self, node):
         for child in node.children:
-            edge = self.dag.edges[node, child]
+            edge = self.dag.edges.get(node, child)
             parents = {
                 idx: f"{node.name}{SEPARATOR}{node.postfix_format.format(idx)}"
                 for idx in range(len(node.vars))
@@ -181,12 +185,13 @@ class DAGWriter:
 
             if isinstance(edge, dag.ManyToMany):
                 if len(node.vars) == 1 or len(child.vars) == 1:
-                    yield f"PARENT {' '.join(parents)} CHILD {' '.join(children)}"
+                    yield f"PARENT {' '.join(parents.values())} CHILD {' '.join(children.values())}"
                 else:
+                    self._write_noop_submit_file()
                     join_name = f"__JOIN~{next(self.join_counter)}__"
-                    yield f"JOB {join_name} {self.noop_sub_name} NOOP"
-                    yield f"PARENT {' '.join(parents)} CHILD {join_name}"
-                    yield f"PARENT {join_name} CHILD {' '.join(children)}"
+                    yield f"JOB {join_name} {NOOP_SUBMIT_FILE_NAME} NOOP"
+                    yield f"PARENT {' '.join(parents.values())} CHILD {join_name}"
+                    yield f"PARENT {join_name} CHILD {' '.join(children.values())}"
             elif isinstance(edge, dag.OneToOne):
                 for (parent, child) in zip(parents.values(), children.values()):
                     yield f"PARENT {parent} CHILD {child}"
