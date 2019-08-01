@@ -24,7 +24,7 @@ from . import dag
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-SEPARATOR = ":"
+SEPARATOR = "__"
 DAG_FILE_NAME = "dagfile.dag"
 CONFIG_FILE_NAME = "dagman.config"
 NOOP_SUBMIT_FILE_NAME = "__JOIN__.sub"
@@ -56,7 +56,9 @@ class DAGWriter:
             self.has_written_noop_file = True
 
     def _write_submit_file(self, node):
-        (self.path / f"{node.name}.sub").write_text(str(node.submit_description))
+        (self.path / f"{node.name}.sub").write_text(
+            str(node.submit_description) + "\nqueue"
+        )
 
     def get_lines(self):
         yield "# BEGIN META"
@@ -114,7 +116,7 @@ class DAGWriter:
     def _get_node_lines(self, node):
         for idx, v in enumerate(node.vars):
             name = f"{node.name}{SEPARATOR}{node.postfix_format.format(idx)}"
-            parts = [f"JOB {name}"]
+            parts = [f"JOB {name} {node.name}.sub"]
             if node.dir is not None:
                 parts.extend(("DIR", str(node.dir)))
             if node.noop:
@@ -127,7 +129,7 @@ class DAGWriter:
                 parts = [f"VARS {name}"]
                 for key, value in v.items():
                     value_text = str(value).replace("\\", "\\\\").replace('"', r"\"")
-                    parts.append(f'{key} = "{value_text}"')
+                    parts.append(f'{key}="{value_text}"')
                 yield " ".join(parts)
 
             if node.retries is not None:

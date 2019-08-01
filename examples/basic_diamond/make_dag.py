@@ -9,20 +9,20 @@ dag = dags.DAG()
 
 NUM_SPLITS = 10
 
-split_data = dag.layer(
-    name="split_data",
+split_words = dag.layer(
+    name="split_words",
     submit_description=Submit(
         {
-            "executable": "split_data.py",
+            "executable": "split_words.py",
             "arguments": str(NUM_SPLITS),
             "transfer_input_files": "words.txt",
-            "output": "split_data.out",
-            "error": "split_data.err",
+            "output": "split_words.out",
+            "error": "split_words.err",
         }
     ),
 )
 
-count_words = split_data.child(
+count_words = split_words.child(
     name="count_words",
     submit_description=Submit(
         {
@@ -36,7 +36,7 @@ count_words = split_data.child(
     vars=[{"word_set": str(n)} for n in range(NUM_SPLITS)],
 )
 
-combine_analysis = count_words.child(
+combine_counts = count_words.child(
     name="combine_counts",
     submit_description=Submit(
         {
@@ -51,7 +51,6 @@ combine_analysis = count_words.child(
 )
 
 this_dir = Path(__file__).parent
-dag_dir = this_dir / "basic_diamond_dag"
-dag.write(dag_dir)
+dag.write(this_dir)
 
-print(f"Wrote DAG files to {dag_dir}")
+print(f"Wrote DAG files to {this_dir}")
