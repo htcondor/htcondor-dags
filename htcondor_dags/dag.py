@@ -298,7 +298,7 @@ class BaseNode(abc.ABC):
         dir: Optional[utils.Openable] = None,
         noop: bool = False,
         done: bool = False,
-        retries: Optional[int] = 0,
+        retries: Optional[int] = None,
         retry_unless_exit: Optional[int] = None,
         pre: Optional[Script] = None,
         pre_skip_exit_code=None,
