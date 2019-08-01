@@ -16,6 +16,8 @@ split_data = dag.layer(
             "executable": "split_data.py",
             "arguments": str(NUM_SPLITS),
             "transfer_input_files": "words.txt",
+            "output": "split_data.out",
+            "error": "split_data.err",
         }
     ),
 )
@@ -27,6 +29,8 @@ count_words = split_data.child(
             "executable": "count_words.py",
             "arguments": "$(word_set)",
             "transfer_input_files": "words_$(word_set).txt",
+            "output": "count_words_$(word_set).out",
+            "error": "count_words_$(word_set).err",
         }
     ),
     vars=[{"word_set": str(n)} for n in range(NUM_SPLITS)],
@@ -40,6 +44,8 @@ combine_analysis = count_words.child(
             "transfer_input_files": ", ".join(
                 f"counts_{n}.txt" for n in range(NUM_SPLITS)
             ),
+            "output": "combine_counts.out",
+            "error": "combine_counts.err",
         }
     ),
 )
