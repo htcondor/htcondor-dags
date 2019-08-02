@@ -4,14 +4,18 @@ import sys
 
 num_splits = int(sys.argv[1])
 
-
+# read all of the words out of words.txt
+# since each word is on its own line, we can just use readlines()
 with open("words.txt", mode="r") as file:
     words = file.readlines()
 
-print(len(words))
-
+# calculate how many words should go in each chunk
+# if it wasn't evenly-divisible by num_splits, we would need to do some extra
+# work to catch stragglers...
 words_per_chunk = int(len(words) / num_splits)
 
+# slice the words list into chunks, writing each one to a file
+# HTCondor will notice the new files and transfer them back to the submit host
 for chunk in range(num_splits):
     print("Writing chunk {}".format(chunk))
 

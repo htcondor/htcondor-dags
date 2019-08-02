@@ -361,6 +361,20 @@ class BaseNode(abc.ABC):
 
         return node
 
+    def child_subdag(self, type=None, **kwargs):
+        node = self._dag.subdag(**kwargs)
+
+        self._dag.edges.add(self, node, type=None)
+
+        return node
+
+    def parent_subdag(self, type=None, **kwargs):
+        node = self._dag.subdag(**kwargs)
+
+        self._dag.edges.add(node, self, type=None)
+
+        return node
+
     def add_children(self, *nodes, type=None):
         nodes = flatten(nodes)
         for node in nodes:

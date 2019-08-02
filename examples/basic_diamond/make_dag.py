@@ -5,10 +5,19 @@ from pathlib import Path
 from htcondor import Submit
 import htcondor_dags as dags
 
-dag = dags.DAG()
 
 NUM_SPLITS = 10
 
+# Start by creating the DAG object itself.
+# This object "holds" the DAG information.
+# Meta-information like DAGMan configuration, the location of the node status
+# file, etc., lives on this object.
+# It's methods are used to create node layers and possibly subDAGs.
+dag = dags.DAG()
+
+# This is the "split" step.
+# It has no parent layer, so it is a root layer of the DAG.
+# Root layers are created from the DAG object itself.
 split_words = dag.layer(
     name="split_words",
     submit_description=Submit(
@@ -22,6 +31,13 @@ split_words = dag.layer(
     ),
 )
 
+# This is the "count words in chunk" step.
+# It is a child layer of the "split" layer, so we can create it by calling
+# the "child" method on the split layer object we got above.
+# A single real DAGMan node will be created for each element in the list passed
+# to vars.
+# Because NUM_SPLITS is 10, this will create 10 DAGMan nodes, one to process
+# each chunk created by the previous layer.
 count_words = split_words.child(
     name="count_words",
     submit_description=Submit(
@@ -36,6 +52,11 @@ count_words = split_words.child(
     vars=[{"word_set": str(n)} for n in range(NUM_SPLITS)],
 )
 
+# This is the "combine the counts from each chunk" step.
+# Since it can't run until all the chunks are done, we create it as a child
+# of the previous step.
+# It's input files are all of the output files from the previous step, which
+# is easy in this case because we know the naming scheme.
 combine_counts = count_words.child(
     name="combine_counts",
     submit_description=Submit(
@@ -50,7 +71,12 @@ combine_counts = count_words.child(
     ),
 )
 
+# We're done setting up the DAG, so we can write it out.
+# The DAG input file itself as well as all of the submit descriptions will
+# be written out to the specified directory.
+# Here, we just write it out to the same directory that this file is in.
+# If you write it out to a different directory, you may need to be careful
+# about filepaths in your submit descriptions!
 this_dir = Path(__file__).parent
 dag.write(this_dir)
-
 print(f"Wrote DAG files to {this_dir}")

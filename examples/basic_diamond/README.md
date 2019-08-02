@@ -31,3 +31,10 @@ Don't worry if you're not familiar with text processing in Python.
 All of the scripts in the second group are written as simply as possible.
 The most important thing to focus on is `make_dag.py`: the other scripts simply
 exist to make sure this example is actually runnable.
+
+
+## Running the Example
+
+1. Run `python make_dag.py`, which should create a `dagfile.dag` as
+   well as a bunch of `*.sub` files in this directory.
+1. Run `condor_submit_dag dagfile.dag`.
