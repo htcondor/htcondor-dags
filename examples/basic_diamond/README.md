@@ -22,7 +22,7 @@ Our code will be in two main pieces:
       
 The overall workflow looks like this:
 
-![basic_diamond.png](basic_diamond.png)
+![Basic Diamond DAG](basic_diamond.svg)
 
 The arrows describe parent -> child relationships.
 The job (or "node", in DAG parlance) at the start of the arrow must complete
