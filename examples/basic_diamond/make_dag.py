@@ -5,8 +5,8 @@ from pathlib import Path
 from htcondor import Submit
 import htcondor_dags as dags
 
-
-NUM_SPLITS = 10
+# We will split words.txt into five chunks.
+NUM_CHUNKS = 5
 
 # Start by creating the DAG object itself.
 # This object "holds" the DAG information.
@@ -23,7 +23,7 @@ split_words = dag.layer(
     submit_description=Submit(
         {
             "executable": "split_words.py",
-            "arguments": str(NUM_SPLITS),
+            "arguments": str(NUM_CHUNKS),
             "transfer_input_files": "words.txt",
             "output": "split_words.out",
             "error": "split_words.err",
@@ -49,7 +49,7 @@ count_words = split_words.child(
             "error": "count_words_$(word_set).err",
         }
     ),
-    vars=[{"word_set": str(n)} for n in range(NUM_SPLITS)],
+    vars=[{"word_set": str(n)} for n in range(NUM_CHUNKS)],
 )
 
 # This is the "combine the counts from each chunk" step.
@@ -63,7 +63,7 @@ combine_counts = count_words.child(
         {
             "executable": "combine_counts.py",
             "transfer_input_files": ", ".join(
-                f"counts_{n}.txt" for n in range(NUM_SPLITS)
+                f"counts_{n}.txt" for n in range(NUM_CHUNKS)
             ),
             "output": "combine_counts.out",
             "error": "combine_counts.err",

@@ -9,13 +9,6 @@ Problems like this are pleasantly parallel, because we can analyze each word
 
 Although there are only a few hundred thousand words in `words.txt`, we will
 write a DAG to perform the above analysis as an exercise.
-The overall workflow looks like this:
-
-We often refer to this basic structure as a "diamond" or as a "scatter-gather".
-It is also an example of a "map-reduce" workflow, where you have one function to
-run on each piece of data (the "map"), and another function that runs on the results
-of the map to combine them in some way (the "reduce").
-
 Our code will be in two main pieces:
 
 1. The Python script `make_dag.py`, which we will run locally to create the DAG
@@ -27,6 +20,19 @@ Our code will be in two main pieces:
    1. `combine_counts.py` will combine all of the counts from individual runs of
       `count_words.py` into a single count.
       
+The overall workflow looks like this:
+
+![basic_diamond.png](basic_diamond.png)
+
+The arrows describe parent -> child relationships.
+The job (or "node", in DAG parlance) at the start of the arrow must complete
+before the job at the end of the arrow can start. 
+
+We often refer to this basic structure as a "diamond" or as a "scatter-gather".
+It is also an example of a "map-reduce" workflow, where you have one function to
+run on each piece of data (the "map"), and another function that runs on the results
+of the map to combine them in some way (the "reduce").
+
 Don't worry if you're not familiar with text processing in Python.
 All of the scripts in the second group are written as simply as possible.
 The most important thing to focus on is `make_dag.py`: the other scripts simply
