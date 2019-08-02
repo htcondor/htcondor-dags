@@ -19,7 +19,7 @@ Our code will be in two main pieces:
       long in whatever input it is given.
    1. `combine_counts.py` will combine all of the counts from individual runs of
       `count_words.py` into a single count.
-      
+
 The overall workflow looks like this:
 
 ![Basic Diamond DAG](basic_diamond.svg)
@@ -37,6 +37,8 @@ Don't worry if you're not familiar with text processing in Python.
 All of the scripts in the second group are written as simply as possible.
 The most important thing to focus on is `make_dag.py`: the other scripts simply
 exist to make sure this example is actually runnable.
+Each file contains comments explaining what it does, so your next step should
+be to read through `make_dag.py` itself.
 
 
 ## Running the Example
