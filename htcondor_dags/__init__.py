@@ -14,4 +14,4 @@
 # limitations under the License.
 
 from .dag import DAG, NodeLayer, SubDAG, DotConfig, NodeStatusFile
-from .writer import DAG_FILE_NAME, CONFIG_FILE_NAME
+from .writer import DAG_FILE_NAME, CONFIG_FILE_NAME, SEPARATOR

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Dict, Iterable, Union, List, Any, Iterator
+from typing import Optional, Dict, Iterable, Union, List, Any, Iterator, Callable, Tuple
 import logging
 
 import collections
@@ -86,36 +86,33 @@ class DAG:
 
     @property
     def nodes(self):
-        return self._nodes
+        yield from self._nodes
 
     @property
-    def edges(self):
-        return self._edges
+    def edges(self) -> Iterator[Tuple[Tuple["BaseNode", "BaseNode"], "EdgeType"]]:
+        yield from self._edges
 
-    def __contains__(self, node):
+    def __contains__(self, node) -> bool:
         return node in self._nodes
 
     def layer(self, **kwargs):
         node = NodeLayer(dag=self, **kwargs)
-        self.nodes.add(node)
+        self._nodes.add(node)
         return node
 
     def subdag(self, **kwargs):
         node = SubDAG(dag=self, **kwargs)
-        self.nodes.add(node)
+        self._nodes.add(node)
         return node
 
-    def select(self, pattern: str):
-        return Nodes(
-            *(
-                node
-                for name, node in self._nodes.items()
-                if fnmatch.fnmatchcase(name, pattern)
-            )
-        )
+    def select(self, selector: Callable[["BaseNode"], bool]) -> "Nodes":
+        return Nodes(*(node for name, node in self._nodes.items() if selector(node)))
+
+    def glob(self, pattern: str) -> "Nodes":
+        return self.select(lambda node: fnmatch.fnmatchcase(node.name, pattern))
 
     @property
-    def node_to_children(self):
+    def node_to_children(self) -> Dict["BaseNode", "Nodes"]:
         d = {n: set() for n in self.nodes}
         for parent, child in self.edges:
             d[parent].add(child)
@@ -123,14 +120,14 @@ class DAG:
         return {k: Nodes(v) for k, v in d.items()}
 
     @property
-    def node_to_parents(self):
+    def node_to_parents(self) -> Dict["BaseNode", "Nodes"]:
         d = {n: set() for n in self.nodes}
         for parent, child in self.edges:
             d[child].add(parent)
 
         return {k: Nodes(v) for k, v in d.items()}
 
-    def roots(self):
+    def roots(self) -> "Nodes":
         return Nodes(
             child
             for child, parents in self.node_to_parents.items()
@@ -209,31 +206,45 @@ class OneToOne(EdgeType):
 
 
 class EdgeStore:
+    """
+    An EdgeStore stores edges for a DAG.
+    """
+
     def __init__(self):
         self.edges = {}
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[EdgeType]:
         yield from self.edges
 
-    def __contains__(self, item):
+    def __contains__(self, item) -> bool:
         return item in self.edges
 
-    def get(self, parent, child):
+    def items(self):
+        yield from self.edges.items()
+
+    def get(self, parent, child) -> Optional[EdgeType]:
         try:
             return self.edges[(parent, child)]
         except KeyError:
             return None
 
-    def add(self, parent, child, type=None):
+    def add(self, parent, child, type: Optional[EdgeType] = None):
         if type is None:
             type = ManyToMany()
         self.edges[(parent, child)] = type
 
-    def pop(self, parent, child):
+    def pop(self, parent, child) -> Optional[EdgeType]:
         return self.edges.pop((parent, child), None)
 
 
 class NodeStore:
+    """
+    A NodeStore behaves roughly like a dictionary mapping node names to nodes.
+    However, it does not support setting items. Instead, you can ``add`` or
+    ``remove`` nodes from the store. Nodes can be specified by name, or by the
+    actual node instance, for flexibility.
+    """
+
     def __init__(self):
         self.nodes = {}
 
@@ -347,68 +358,68 @@ class BaseNode(abc.ABC):
             return NotImplemented
         return self.name < other.name
 
-    def child(self, type=None, **kwargs):
+    def child(self, type: Optional[EdgeType] = None, **kwargs):
         node = self._dag.layer(**kwargs)
 
-        self._dag.edges.add(self, node, type=None)
+        self._dag._edges.add(self, node, type=type)
 
         return node
 
-    def parent(self, type=None, **kwargs):
+    def parent(self, type: Optional[EdgeType] = None, **kwargs):
         node = self._dag.layer(**kwargs)
 
-        self._dag.edges.add(node, self, type=None)
+        self._dag._edges.add(node, self, type=type)
 
         return node
 
-    def child_subdag(self, type=None, **kwargs):
+    def child_subdag(self, type: Optional[EdgeType] = None, **kwargs):
         node = self._dag.subdag(**kwargs)
 
-        self._dag.edges.add(self, node, type=None)
+        self._dag._edges.add(self, node, type=type)
 
         return node
 
-    def parent_subdag(self, type=None, **kwargs):
+    def parent_subdag(self, type: Optional[EdgeType] = None, **kwargs):
         node = self._dag.subdag(**kwargs)
 
-        self._dag.edges.add(node, self, type=None)
+        self._dag._edges.add(node, self, type=type)
 
         return node
 
-    def add_children(self, *nodes, type=None):
+    def add_children(self, *nodes, type: Optional[EdgeType] = None):
         nodes = flatten(nodes)
         for node in nodes:
-            self._dag.edges.add(self, node, type=type)
+            self._dag._edges.add(self, node, type=type)
 
         return self
 
     def remove_children(self, *nodes):
         nodes = flatten(nodes)
         for node in nodes:
-            self._dag.edges.remove(self, node)
+            self._dag._edges.remove(self, node)
 
         return self
 
-    def add_parents(self, *nodes, type=None):
+    def add_parents(self, *nodes, type: Optional[EdgeType] = None):
         nodes = flatten(nodes)
         for node in nodes:
-            self._dag.edges.add(node, self, type=type)
+            self._dag._edges.add(node, self, type=type)
 
         return self
 
     def remove_parents(self, *nodes):
         nodes = flatten(nodes)
         for node in nodes:
-            self._dag.edges.remove(node, self)
+            self._dag._edges.remove(node, self)
 
         return self
 
     @property
-    def parents(self):
+    def parents(self) -> "Nodes":
         return self._dag.node_to_parents[self]
 
     @property
-    def children(self):
+    def children(self) -> "Nodes":
         return self._dag.node_to_children[self]
 
 
@@ -447,39 +458,53 @@ class Nodes:
         for node in nodes:
             self.nodes.add(node)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.nodes)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[BaseNode]:
         yield from self.nodes
 
-    def __contains__(self, node):
+    def __contains__(self, node) -> bool:
         return node in self.nodes
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Nodes({', '.join(repr(n) for n in sorted(self.nodes, key = lambda n: n.name))})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Nodes({', '.join(str(n) for n in sorted(self.nodes, key = lambda n: n.name))})"
 
-    def _some_element(self):
+    def _some_element(self) -> BaseNode:
         return next(iter(self.nodes))
 
-    def child(self, type=None, **kwargs):
+    def child(self, type: Optional[EdgeType] = None, **kwargs) -> NodeLayer:
         node = self._some_element().child(**kwargs)
 
         node.add_parents(self, type=type)
 
         return node
 
-    def parent(self, type=None, **kwargs):
+    def parent(self, type: Optional[EdgeType] = None, **kwargs) -> NodeLayer:
         node = self._some_element().parent(**kwargs)
 
         node.add_children(self, type=type)
 
         return node
 
-    def add_children(self, *nodes, type=None):
+    def child_subdag(self, type: Optional[EdgeType] = None, **kwargs) -> SubDAG:
+        node = self._some_element().child_subdag(**kwargs)
+
+        node.add_parents(self, type=type)
+
+        return node
+
+    def parent_subdag(self, type: Optional[EdgeType] = None, **kwargs) -> SubDAG:
+        node = self._some_element().parent_subdag(**kwargs)
+
+        node.add_children(self, type=type)
+
+        return node
+
+    def add_children(self, *nodes, type: Optional[EdgeType] = None):
         for s in self:
             s.add_children(nodes, type=type)
 
@@ -487,7 +512,7 @@ class Nodes:
         for s in self:
             s.remove_children(nodes)
 
-    def add_parents(self, *nodes, type=None):
+    def add_parents(self, *nodes, type: Optional[EdgeType] = None):
         for s in self:
             s.add_parents(nodes, type=type)
 

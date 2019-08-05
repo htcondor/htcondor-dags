@@ -17,9 +17,7 @@ from pathlib import Path
 
 import htcondor_dags as dags
 
-
-def dagfile_lines(dag_dir):
-    return (dag_dir / dags.DAG_FILE_NAME).read_text().splitlines()
+from .conftest import dagfile_lines
 
 
 def test_empty_dag_writes_empty_dagfile(dag_dir):

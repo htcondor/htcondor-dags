@@ -15,6 +15,8 @@
 
 import pytest
 
+import htcondor_dags as dags
+
 
 @pytest.fixture(scope="function")
 def dag_dir(tmp_path):
@@ -22,3 +24,13 @@ def dag_dir(tmp_path):
     d.mkdir()
 
     return d
+
+
+def dagfile_text(dag_dir):
+    text = (dag_dir / dags.DAG_FILE_NAME).read_text()
+    print(text)
+    return text
+
+
+def dagfile_lines(dag_dir):
+    return dagfile_text(dag_dir).splitlines()
