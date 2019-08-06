@@ -21,11 +21,6 @@ import htcondor_dags as dags
 from .conftest import dagfile_lines, dagfile_text
 
 
-@pytest.fixture(scope="function")
-def dag():
-    return dags.DAG()
-
-
 def test_one_parent_one_child(dag_dir, dag):
     parent = dag.layer(name="parent")
     child = parent.child(name="child")
@@ -59,7 +54,7 @@ def test_one_parent_two_children(dag_dir, dag):
     )
 
 
-def test_two_parents_two_children(dag_dir, dag):
+def test_two_parents_two_children_creates_join_node(dag_dir, dag):
     parent = dag.layer(name="parent", vars=[{}, {}])
     child = parent.child(name="child", vars=[{}, {}])
 

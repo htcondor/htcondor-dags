@@ -45,9 +45,8 @@ class DAGWriter:
 
         with (self.path / DAG_FILE_NAME).open(mode="w") as f:
             for line in self.get_lines():
-                f.write(line)
-                f.write("\n")
-        for node in self.dag.nodes:
+                f.write(line + "\n")
+        for node in (n for n in self.dag.nodes if isinstance(n, dag.NodeLayer)):
             self._write_submit_file(node)
 
     def _write_noop_submit_file(self):
@@ -114,6 +113,13 @@ class DAGWriter:
             yield f"CATEGORY {category} {value}"
 
     def _get_node_lines(self, node):
+        if isinstance(node, dag.NodeLayer):
+            yield from self._get_node_layer_lines(node)
+        elif isinstance(node, dag.SubDAG):
+            yield from self._get_subdag_lines(node)
+
+    # todo: these _get_xxx_lines(node) methods share much code, refactor!
+    def _get_node_layer_lines(self, node: "dag.NodeLayer"):
         for idx, v in enumerate(node.vars):
             name = self._get_node_name(node, idx)
             parts = [f"JOB {name} {node.name}.sub"]
@@ -157,6 +163,43 @@ class DAGWriter:
                 if node.abort.dag_return_value is not None:
                     parts.append(f"RETURN {node.abort.dag_return_value}")
                 yield " ".join(parts)
+
+    def _get_subdag_lines(self, node: "dag.SubDAG"):
+        name = node.name
+        parts = [f"SUBDAG EXTERNAL {name} {node.dag_file}"]
+        if node.dir is not None:
+            parts.extend(("DIR", str(node.dir)))
+        if node.noop:
+            parts.append("NOOP")
+        if node.done:
+            parts.append("DONE")
+        yield " ".join(parts)
+
+        if node.retries is not None:
+            parts = [f"RETRY {name} {node.retries}"]
+            if node.retry_unless_exit is not None:
+                parts.append(f"UNLESS-EXIT {node.retry_unless_exit}")
+            yield " ".join(parts)
+
+        if node.pre is not None:
+            yield from self._get_script_line(name, node.pre, "PRE")
+        if node.post is not None:
+            yield from self._get_script_line(name, node.post, "POST")
+
+        if node.pre_skip_exit_code is not None:
+            yield f"PRE_SKIP {name} {node.pre_skip_exit_code}"
+
+        if node.priority != 0:
+            yield f"PRIORITY {name} {node.priority}"
+
+        if node.category is not None:
+            yield f"CATEGORY {name} {node.category}"
+
+        if node.abort is not None:
+            parts = [f"ABORT-DAG-ON {name} {node.abort.node_exit_value}"]
+            if node.abort.dag_return_value is not None:
+                parts.append(f"RETURN {node.abort.dag_return_value}")
+            yield " ".join(parts)
 
     def _get_script_line(self, name, script, which):
         parts = ["SCRIPT"]

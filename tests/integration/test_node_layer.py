@@ -21,11 +21,6 @@ import htcondor_dags as dags
 from .conftest import dagfile_lines, dagfile_text
 
 
-@pytest.fixture(scope="function")
-def dag():
-    return dags.DAG()
-
-
 def test_layer_name_appears(dag_dir, dag):
     dag.layer(name="foobar")
 
