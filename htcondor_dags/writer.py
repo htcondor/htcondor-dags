@@ -20,7 +20,7 @@ import itertools
 import collections
 from pathlib import Path
 
-from . import dag
+from . import dag, exceptions
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -233,6 +233,10 @@ class DAGWriter:
                     yield f"PARENT {' '.join(parents.values())} CHILD {join_name}"
                     yield f"PARENT {join_name} CHILD {' '.join(children.values())}"
             elif isinstance(edge_type, dag.OneToOne):
+                if len(parents) != len(children):
+                    raise exceptions.OneToOneEdgeNeedsSameNumberOfVars(
+                        f"parent layer {node} has {len(parents)} nodes, but child layer {child} has {len(children)} nodes"
+                    )
                 for (parent, child) in zip(parents.values(), children.values()):
                     yield f"PARENT {parent} CHILD {child}"
             else:

@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .dag import DAG, NodeLayer, SubDAG, DotConfig, NodeStatusFile, ManyToMany, OneToOne
-from .writer import DAG_FILE_NAME, CONFIG_FILE_NAME, SEPARATOR
-from . import exceptions
+
+class DAGsException(Exception):
+    pass
+
+
+class OneToOneEdgeNeedsSameNumberOfVars(DAGsException):
+    pass

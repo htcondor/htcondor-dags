@@ -69,3 +69,22 @@ def test_two_parents_two_children_creates_join_node(dag_dir, dag):
         f"PARENT __JOIN__{dags.SEPARATOR}0 CHILD child{dags.SEPARATOR}0 child{dags.SEPARATOR}1"
         in lines
     )
+
+
+def test_two_parents_two_children_one_to_one(dag_dir, dag):
+    parent = dag.layer(name="parent", vars=[{}, {}])
+    child = parent.child(name="child", vars=[{}, {}], type=dags.OneToOne())
+
+    dag.write(dag_dir)
+
+    lines = dagfile_lines(dag_dir)
+    assert f"PARENT parent{dags.SEPARATOR}0 CHILD child{dags.SEPARATOR}0" in lines
+    assert f"PARENT parent{dags.SEPARATOR}1 CHILD child{dags.SEPARATOR}1" in lines
+
+
+def test_two_parents_three_children_one_to_one_raises(dag_dir, dag):
+    parent = dag.layer(name="parent", vars=[{}, {}])
+    child = parent.child(name="child", vars=[{}, {}, {}], type=dags.OneToOne())
+
+    with pytest.raises(dags.exceptions.OneToOneEdgeNeedsSameNumberOfVars):
+        dag.write(dag_dir)
