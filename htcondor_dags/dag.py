@@ -219,21 +219,23 @@ class EdgeStore:
     def __contains__(self, item) -> bool:
         return item in self.edges
 
-    def items(self):
+    def items(self) -> Iterator[Tuple[Tuple["BaseNode", "BaseNode"], EdgeType]]:
         yield from self.edges.items()
 
-    def get(self, parent, child) -> Optional[EdgeType]:
+    def get(self, parent: "BaseNode", child: "BaseNode") -> Optional[EdgeType]:
         try:
             return self.edges[(parent, child)]
         except KeyError:
             return None
 
-    def add(self, parent, child, type: Optional[EdgeType] = None):
+    def add(
+        self, parent: "BaseNode", child: "BaseNode", type: Optional[EdgeType] = None
+    ):
         if type is None:
             type = ManyToMany()
         self.edges[(parent, child)] = type
 
-    def pop(self, parent, child) -> Optional[EdgeType]:
+    def pop(self, parent: "BaseNode", child: "BaseNode") -> Optional[EdgeType]:
         return self.edges.pop((parent, child), None)
 
 
@@ -248,14 +250,14 @@ class NodeStore:
     def __init__(self):
         self.nodes = {}
 
-    def add(self, *nodes):
+    def add(self, *nodes: "BaseNode"):
         for node in nodes:
             if isinstance(node, BaseNode):
                 self.nodes[node.name] = node
             elif isinstance(node, Nodes):
                 self.add(self, node)
 
-    def remove(self, *nodes):
+    def remove(self, *nodes: "BaseNode"):
         for node in nodes:
             if isinstance(node, str):
                 self.nodes.pop(node, None)
@@ -264,7 +266,7 @@ class NodeStore:
             elif isinstance(node, Nodes):
                 self.remove(node)
 
-    def __getitem__(self, node):
+    def __getitem__(self, node: "BaseNode"):
         if isinstance(node, str):
             return self.nodes[node]
         elif isinstance(node, BaseNode):
@@ -272,26 +274,26 @@ class NodeStore:
         else:
             raise KeyError()
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator["BaseNode"]:
         yield from self.nodes.values()
 
-    def __contains__(self, node):
+    def __contains__(self, node: Union["BaseNode", str]) -> bool:
         if isinstance(node, BaseNode):
             return node in self.nodes.values()
         elif isinstance(node, str):
             return node in self.nodes.keys()
         return False
 
-    def items(self):
+    def items(self) -> Iterator[Tuple[str, "BaseNode"]]:
         yield from self.nodes.items()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr(set(self.nodes.values()))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(set(self.nodes.values()))
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.nodes)
 
 
@@ -335,14 +337,14 @@ class BaseNode(abc.ABC):
         self.pre_skip_exit_code = pre_skip_exit_code
         self.post = post
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return utils.make_repr(self, ("name",))
 
-    def description(self):
+    def description(self) -> str:
         data = "\n".join(f"  {k} = {v}" for k, v in self.__dict__.items())
         return f"{self.__class__.__name__}(\n{data}\n)"
 
-    def __iter__(self):
+    def __iter__(self) -> "BaseNode":
         yield self
 
     def __hash__(self):
@@ -358,56 +360,56 @@ class BaseNode(abc.ABC):
             return NotImplemented
         return self.name < other.name
 
-    def child(self, type: Optional[EdgeType] = None, **kwargs):
+    def child(self, type: Optional[EdgeType] = None, **kwargs) -> "NodeLayer":
         node = self._dag.layer(**kwargs)
 
         self._dag._edges.add(self, node, type=type)
 
         return node
 
-    def parent(self, type: Optional[EdgeType] = None, **kwargs):
+    def parent(self, type: Optional[EdgeType] = None, **kwargs) -> "NodeLayer":
         node = self._dag.layer(**kwargs)
 
         self._dag._edges.add(node, self, type=type)
 
         return node
 
-    def child_subdag(self, type: Optional[EdgeType] = None, **kwargs):
+    def child_subdag(self, type: Optional[EdgeType] = None, **kwargs) -> "SubDAG":
         node = self._dag.subdag(**kwargs)
 
         self._dag._edges.add(self, node, type=type)
 
         return node
 
-    def parent_subdag(self, type: Optional[EdgeType] = None, **kwargs):
+    def parent_subdag(self, type: Optional[EdgeType] = None, **kwargs) -> "SubDAG":
         node = self._dag.subdag(**kwargs)
 
         self._dag._edges.add(node, self, type=type)
 
         return node
 
-    def add_children(self, *nodes, type: Optional[EdgeType] = None):
+    def add_children(self, *nodes, type: Optional[EdgeType] = None) -> "BaseNode":
         nodes = flatten(nodes)
         for node in nodes:
             self._dag._edges.add(self, node, type=type)
 
         return self
 
-    def remove_children(self, *nodes):
+    def remove_children(self, *nodes) -> "BaseNode":
         nodes = flatten(nodes)
         for node in nodes:
             self._dag._edges.remove(self, node)
 
         return self
 
-    def add_parents(self, *nodes, type: Optional[EdgeType] = None):
+    def add_parents(self, *nodes, type: Optional[EdgeType] = None) -> "BaseNode":
         nodes = flatten(nodes)
         for node in nodes:
             self._dag._edges.add(node, self, type=type)
 
         return self
 
-    def remove_parents(self, *nodes):
+    def remove_parents(self, *nodes) -> "BaseNode":
         nodes = flatten(nodes)
         for node in nodes:
             self._dag._edges.remove(node, self)
