@@ -18,6 +18,7 @@ import logging
 
 import itertools
 import collections
+from pathlib import Path
 
 from . import dag
 
@@ -33,40 +34,40 @@ NOOP_SUBMIT_FILE_NAME = "__JOIN__.sub"
 class DAGWriter:
     """Not re-entrant!"""
 
-    def __init__(self, dag, path):
+    def __init__(self, dag: "dag.DAG", path: Path):
         self.dag = dag
-        self.join_counter = itertools.count()
         self.path = path
 
+        self.join_counter = itertools.count()
         self.has_written_noop_file = False
 
     def write(self):
         self.path.mkdir(parents=True, exist_ok=True)
 
         self.write_dag_file()
-        self.write_submit_files()
+        self.write_submit_files_for_layers()
 
     def write_dag_file(self):
         with (self.path / DAG_FILE_NAME).open(mode="w") as f:
             for line in self.yield_dag_file_lines():
                 f.write(line + "\n")
 
-    def write_submit_files(self):
+    def write_submit_files_for_layers(self):
         for layer in (n for n in self.dag.nodes if isinstance(n, dag.NodeLayer)):
-            self.write_submit_file_for_layer(layer)
-
-    def write_submit_file_for_layer(self, layer):
-        (self.path / f"{layer.name}.sub").write_text(
-            str(layer.submit_description) + "\nqueue"
-        )
+            text = str(layer.submit_description) + "\nqueue"
+            (self.path / f"{layer.name}.sub").write_text(text)
 
     def write_noop_submit_file(self):
-        """Write out the shared submit file for the NOOP join nodes."""
+        """
+        Write out the shared submit file for the NOOP join nodes.
+        This is not done by default; it is only done if we actually need a
+        join node.
+        """
         if not self.has_written_noop_file:
             (self.path / NOOP_SUBMIT_FILE_NAME).touch(exist_ok=True)
             self.has_written_noop_file = True
 
-    def yield_dag_file_lines(self):
+    def yield_dag_file_lines(self) -> Iterator[str]:
         yield "# BEGIN META"
         for line in itertools.chain(self.yield_dag_meta_lines()):
             yield line
@@ -74,10 +75,9 @@ class DAGWriter:
 
         yield "# BEGIN NODES AND EDGES"
         for node in self.dag.walk(order=dag.WalkOrder.BREADTH_FIRST):
-            for line in itertools.chain(
+            yield from itertools.chain(
                 self.yield_node_lines(node), self.yield_edge_lines(node)
-            ):
-                yield line
+            )
         yield "# END NODES AND EDGES"
 
     def yield_dag_meta_lines(self):
@@ -119,9 +119,7 @@ class DAGWriter:
         contents = "\n".join(f"{k} = {v}" for k, v in self.dag.dagman_config.items())
         (self.path / CONFIG_FILE_NAME).write_text(contents)
 
-    def yield_node_lines(
-        self, node: Union["dag.NodeLayer", "dag.SubDAG"]
-    ) -> Iterator[str]:
+    def yield_node_lines(self, node: "dag.BaseNode") -> Iterator[str]:
         if isinstance(node, dag.NodeLayer):
             yield from self.yield_layer_lines(node)
         elif isinstance(node, dag.SubDAG):
@@ -195,21 +193,23 @@ class DAGWriter:
         parts = ["SCRIPT"]
 
         if script.retry:
-            parts.append("DEFER")
-            parts.append(script.retry_status)
-            parts.append(script.retry_delay)
+            parts.extend(("DEFER", script.retry_status, script.retry_delay))
 
-        parts.append(which.upper())
-        parts.append(name)
-        parts.append(script.executable)
-        parts.extend(script.arguments)
+        parts.extend((which.upper(), name, script.executable, script.arguments))
 
         yield " ".join(str(p) for p in parts)
 
     def get_node_name(self, node: "dag.BaseNode", idx: int) -> str:
-        if len(node.vars) == 1 or isinstance(node, dag.SubDAG):
+        if isinstance(node, dag.SubDAG):
             return node.name
-        return f"{node.name}{SEPARATOR}{node.postfix_format.format(idx)}"
+        elif isinstance(node, dag.NodeLayer) and len(node.vars) == 1:
+            return node.name
+        elif isinstance(node, dag.NodeLayer):
+            return f"{node.name}{SEPARATOR}{node.postfix_format.format(idx)}"
+        else:
+            raise Exception(
+                f"Was not able to generate a node name for node {node}, index {idx}"
+            )
 
     def get_indexes_to_node_names(self, node) -> Dict[int, str]:
         if isinstance(node, dag.SubDAG):
