@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, MutableMapping, List, Dict, Iterable, Union
+from typing import Optional, MutableMapping, List, Dict, Iterable, Union, Iterator
 import logging
 
 import itertools
@@ -43,43 +43,46 @@ class DAGWriter:
     def write(self):
         self.path.mkdir(parents=True, exist_ok=True)
 
-        with (self.path / DAG_FILE_NAME).open(mode="w") as f:
-            for line in self.get_lines():
-                f.write(line + "\n")
-        for node in (n for n in self.dag.nodes if isinstance(n, dag.NodeLayer)):
-            self._write_submit_file(node)
+        self.write_dag_file()
+        self.write_submit_files()
 
-    def _write_noop_submit_file(self):
+    def write_dag_file(self):
+        with (self.path / DAG_FILE_NAME).open(mode="w") as f:
+            for line in self.yield_dag_file_lines():
+                f.write(line + "\n")
+
+    def write_submit_files(self):
+        for layer in (n for n in self.dag.nodes if isinstance(n, dag.NodeLayer)):
+            self.write_submit_file_for_layer(layer)
+
+    def write_submit_file_for_layer(self, layer):
+        (self.path / f"{layer.name}.sub").write_text(
+            str(layer.submit_description) + "\nqueue"
+        )
+
+    def write_noop_submit_file(self):
+        """Write out the shared submit file for the NOOP join nodes."""
         if not self.has_written_noop_file:
             (self.path / NOOP_SUBMIT_FILE_NAME).touch(exist_ok=True)
             self.has_written_noop_file = True
 
-    def _write_submit_file(self, node):
-        (self.path / f"{node.name}.sub").write_text(
-            str(node.submit_description) + "\nqueue"
-        )
-
-    def get_lines(self):
+    def yield_dag_file_lines(self):
         yield "# BEGIN META"
-        for line in itertools.chain(self._get_meta_lines()):
+        for line in itertools.chain(self.yield_dag_meta_lines()):
             yield line
         yield "# END META"
 
         yield "# BEGIN NODES AND EDGES"
         for node in self.dag.walk(order=dag.WalkOrder.BREADTH_FIRST):
             for line in itertools.chain(
-                self._get_node_lines(node), self._get_edge_lines(node)
+                self.yield_node_lines(node), self.yield_edge_lines(node)
             ):
                 yield line
         yield "# END NODES AND EDGES"
 
-    def _write_dagman_config_file(self):
-        contents = "\n".join(f"{k} = {v}" for k, v in self.dag.dagman_config.items())
-        (self.path / CONFIG_FILE_NAME).write_text(contents)
-
-    def _get_meta_lines(self):
+    def yield_dag_meta_lines(self):
         if len(self.dag.dagman_config) > 0:
-            self._write_dagman_config_file()
+            self.write_dagman_config_file()
             yield f"CONFIG {CONFIG_FILE_NAME}"
 
         if self.dag.jobstate_log is not None:
@@ -112,69 +115,54 @@ class DAGWriter:
         for category, value in self.dag.max_jobs_per_category.items():
             yield f"CATEGORY {category} {value}"
 
-    def _get_node_lines(self, node):
-        if isinstance(node, dag.NodeLayer):
-            yield from self._get_node_layer_lines(node)
-        elif isinstance(node, dag.SubDAG):
-            yield from self._get_subdag_lines(node)
+    def write_dagman_config_file(self):
+        contents = "\n".join(f"{k} = {v}" for k, v in self.dag.dagman_config.items())
+        (self.path / CONFIG_FILE_NAME).write_text(contents)
 
-    # todo: these _get_xxx_lines(node) methods share much code, refactor!
-    def _get_node_layer_lines(self, node: "dag.NodeLayer"):
-        for idx, v in enumerate(node.vars):
-            name = self._get_node_name(node, idx)
-            parts = [f"JOB {name} {node.name}.sub"]
-            if node.dir is not None:
-                parts.extend(("DIR", str(node.dir)))
-            if node.noop:
-                parts.append("NOOP")
-            if node.done:
-                parts.append("DONE")
+    def yield_node_lines(
+        self, node: Union["dag.NodeLayer", "dag.SubDAG"]
+    ) -> Iterator[str]:
+        if isinstance(node, dag.NodeLayer):
+            yield from self.yield_layer_lines(node)
+        elif isinstance(node, dag.SubDAG):
+            yield from self.yield_subdag_lines(node)
+
+    def yield_layer_lines(self, layer: "dag.NodeLayer") -> Iterator[str]:
+        node_meta_parts = self.get_node_meta_parts(layer)
+
+        # write out each low-level dagman node in the layer
+        for idx, vars in enumerate(layer.vars):
+            name = self.get_node_name(layer, idx)
+            parts = [f"JOB {name} {layer.name}.sub"] + node_meta_parts
             yield " ".join(parts)
 
-            if len(v) > 0:
+            if len(vars) > 0:
                 parts = [f"VARS {name}"]
-                for key, value in v.items():
+                for key, value in vars.items():
                     value_text = str(value).replace("\\", "\\\\").replace('"', r"\"")
                     parts.append(f'{key}="{value_text}"')
                 yield " ".join(parts)
 
-            if node.retries is not None:
-                parts = [f"RETRY {name} {node.retries}"]
-                if node.retry_unless_exit is not None:
-                    parts.append(f"UNLESS-EXIT {node.retry_unless_exit}")
-                yield " ".join(parts)
+            yield from self.yield_node_meta_lines(layer, name)
 
-            if node.pre is not None:
-                yield from self._get_script_line(name, node.pre, "PRE")
-            if node.post is not None:
-                yield from self._get_script_line(name, node.post, "POST")
+    def yield_subdag_lines(self, subdag: "dag.SubDAG") -> Iterator[str]:
+        parts = [f"SUBDAG EXTERNAL {subdag.name} {subdag.dag_file}"]
+        parts += self.get_node_meta_parts(subdag)
+        yield " ".join(parts)
 
-            if node.pre_skip_exit_code is not None:
-                yield f"PRE_SKIP {name} {node.pre_skip_exit_code}"
+        yield from self.yield_node_meta_lines(subdag, subdag.name)
 
-            if node.priority != 0:
-                yield f"PRIORITY {name} {node.priority}"
-
-            if node.category is not None:
-                yield f"CATEGORY {name} {node.category}"
-
-            if node.abort is not None:
-                parts = [f"ABORT-DAG-ON {name} {node.abort.node_exit_value}"]
-                if node.abort.dag_return_value is not None:
-                    parts.append(f"RETURN {node.abort.dag_return_value}")
-                yield " ".join(parts)
-
-    def _get_subdag_lines(self, node: "dag.SubDAG"):
-        name = node.name
-        parts = [f"SUBDAG EXTERNAL {name} {node.dag_file}"]
+    def get_node_meta_parts(self, node: "dag.BaseNode") -> List[str]:
+        parts = []
         if node.dir is not None:
             parts.extend(("DIR", str(node.dir)))
         if node.noop:
             parts.append("NOOP")
         if node.done:
             parts.append("DONE")
-        yield " ".join(parts)
+        return parts
 
+    def yield_node_meta_lines(self, node: "dag.BaseNode", name: str) -> Iterator[str]:
         if node.retries is not None:
             parts = [f"RETRY {name} {node.retries}"]
             if node.retry_unless_exit is not None:
@@ -182,9 +170,9 @@ class DAGWriter:
             yield " ".join(parts)
 
         if node.pre is not None:
-            yield from self._get_script_line(name, node.pre, "PRE")
+            yield from self.yield_script_line(name, node.pre, "PRE")
         if node.post is not None:
-            yield from self._get_script_line(name, node.post, "POST")
+            yield from self.yield_script_line(name, node.post, "POST")
 
         if node.pre_skip_exit_code is not None:
             yield f"PRE_SKIP {name} {node.pre_skip_exit_code}"
@@ -201,7 +189,9 @@ class DAGWriter:
                 parts.append(f"RETURN {node.abort.dag_return_value}")
             yield " ".join(parts)
 
-    def _get_script_line(self, name, script, which):
+    def yield_script_line(
+        self, name: str, script: "dag.Script", which: str
+    ) -> Iterator[str]:
         parts = ["SCRIPT"]
 
         if script.retry:
@@ -216,30 +206,28 @@ class DAGWriter:
 
         yield " ".join(str(p) for p in parts)
 
-    def _get_node_name(self, node, idx):
+    def get_node_name(self, node: "dag.BaseNode", idx: int) -> str:
         if len(node.vars) == 1 or isinstance(node, dag.SubDAG):
             return node.name
         return f"{node.name}{SEPARATOR}{node.postfix_format.format(idx)}"
 
-    def _get_indexes_to_node_names(self, node):
+    def get_indexes_to_node_names(self, node) -> Dict[int, str]:
         if isinstance(node, dag.SubDAG):
             return {0: node.name}
         elif isinstance(node, dag.NodeLayer):
-            return {
-                idx: self._get_node_name(node, idx) for idx in range(len(node.vars))
-            }
+            return {idx: self.get_node_name(node, idx) for idx in range(len(node.vars))}
 
-    def _get_edge_lines(self, node):
-        parents = self._get_indexes_to_node_names(node)
+    def yield_edge_lines(self, node: "dag.BaseNode") -> Iterator[str]:
+        parents = self.get_indexes_to_node_names(node)
         for child in node.children:
-            children = self._get_indexes_to_node_names(child)
+            children = self.get_indexes_to_node_names(child)
 
             edge_type = self.dag._edges.get(node, child)
             if isinstance(edge_type, dag.ManyToMany):
                 if len(parents) == 1 or len(children) == 1:
                     yield f"PARENT {' '.join(parents.values())} CHILD {' '.join(children.values())}"
                 else:
-                    self._write_noop_submit_file()
+                    self.write_noop_submit_file()
                     join_name = f"__JOIN__{SEPARATOR}{next(self.join_counter)}"
                     yield f"JOB {join_name} {NOOP_SUBMIT_FILE_NAME} NOOP"
                     yield f"PARENT {' '.join(parents.values())} CHILD {join_name}"
