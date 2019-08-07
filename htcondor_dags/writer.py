@@ -217,22 +217,26 @@ class DAGWriter:
         yield " ".join(str(p) for p in parts)
 
     def _get_node_name(self, node, idx):
-        if len(node.vars) == 1:
+        if len(node.vars) == 1 or isinstance(node, dag.SubDAG):
             return node.name
         return f"{node.name}{SEPARATOR}{node.postfix_format.format(idx)}"
 
-    def _get_edge_lines(self, node):
-        for child in node.children:
-            parents = {
+    def _get_indexes_to_node_names(self, node):
+        if isinstance(node, dag.SubDAG):
+            return {0: node.name}
+        elif isinstance(node, dag.NodeLayer):
+            return {
                 idx: self._get_node_name(node, idx) for idx in range(len(node.vars))
             }
-            children = {
-                idx: self._get_node_name(child, idx) for idx in range(len(child.vars))
-            }
+
+    def _get_edge_lines(self, node):
+        parents = self._get_indexes_to_node_names(node)
+        for child in node.children:
+            children = self._get_indexes_to_node_names(child)
 
             edge_type = self.dag._edges.get(node, child)
             if isinstance(edge_type, dag.ManyToMany):
-                if len(node.vars) == 1 or len(child.vars) == 1:
+                if len(parents) == 1 or len(children) == 1:
                     yield f"PARENT {' '.join(parents.values())} CHILD {' '.join(children.values())}"
                 else:
                     self._write_noop_submit_file()
@@ -244,6 +248,7 @@ class DAGWriter:
                 for (parent, child) in zip(parents.values(), children.values()):
                     yield f"PARENT {parent} CHILD {child}"
             else:
+                raise NotImplementedError("No support for generic Edges yet!")
                 parent_to_children = collections.defaultdict(set)
                 for parent_idx in parents:
                     for child_idx in children:
