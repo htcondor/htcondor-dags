@@ -12,13 +12,13 @@
 <!-- split_words -->
 <g id="node1" class="node">
 <title>split_words</title>
-<ellipse fill="none" stroke="#000000" cx="383.5438" cy="-162" rx="51.9908" ry="18"/>
+<ellipse fill="#d3d3d3" stroke="#000000" cx="383.5438" cy="-162" rx="51.9908" ry="18"/>
 <text text-anchor="middle" x="383.5438" y="-158.3" font-family="Times,serif" font-size="14.00" fill="#000000">split_words</text>
 </g>
 <!-- count_words__1 -->
 <g id="node2" class="node">
 <title>count_words__1</title>
-<ellipse fill="none" stroke="#000000" cx="69.5438" cy="-90" rx="69.5877" ry="18"/>
+<ellipse fill="#d3d3d3" stroke="#000000" cx="69.5438" cy="-90" rx="69.5877" ry="18"/>
 <text text-anchor="middle" x="69.5438" y="-86.3" font-family="Times,serif" font-size="14.00" fill="#000000">count_words__1</text>
 </g>
 <!-- split_words&#45;&gt;count_words__1 -->
@@ -30,7 +30,7 @@
 <!-- count_words__2 -->
 <g id="node3" class="node">
 <title>count_words__2</title>
-<ellipse fill="none" stroke="#000000" cx="226.5438" cy="-90" rx="69.5877" ry="18"/>
+<ellipse fill="#d3d3d3" stroke="#000000" cx="226.5438" cy="-90" rx="69.5877" ry="18"/>
 <text text-anchor="middle" x="226.5438" y="-86.3" font-family="Times,serif" font-size="14.00" fill="#000000">count_words__2</text>
 </g>
 <!-- split_words&#45;&gt;count_words__2 -->
@@ -42,7 +42,7 @@
 <!-- count_words__3 -->
 <g id="node4" class="node">
 <title>count_words__3</title>
-<ellipse fill="none" stroke="#000000" cx="383.5438" cy="-90" rx="69.5877" ry="18"/>
+<ellipse fill="#d3d3d3" stroke="#000000" cx="383.5438" cy="-90" rx="69.5877" ry="18"/>
 <text text-anchor="middle" x="383.5438" y="-86.3" font-family="Times,serif" font-size="14.00" fill="#000000">count_words__3</text>
 </g>
 <!-- split_words&#45;&gt;count_words__3 -->
@@ -54,7 +54,7 @@
 <!-- count_words__4 -->
 <g id="node5" class="node">
 <title>count_words__4</title>
-<ellipse fill="none" stroke="#000000" cx="540.5438" cy="-90" rx="69.5877" ry="18"/>
+<ellipse fill="#d3d3d3" stroke="#000000" cx="540.5438" cy="-90" rx="69.5877" ry="18"/>
 <text text-anchor="middle" x="540.5438" y="-86.3" font-family="Times,serif" font-size="14.00" fill="#000000">count_words__4</text>
 </g>
 <!-- split_words&#45;&gt;count_words__4 -->
@@ -66,7 +66,7 @@
 <!-- count_words__5 -->
 <g id="node6" class="node">
 <title>count_words__5</title>
-<ellipse fill="none" stroke="#000000" cx="697.5438" cy="-90" rx="69.5877" ry="18"/>
+<ellipse fill="#d3d3d3" stroke="#000000" cx="697.5438" cy="-90" rx="69.5877" ry="18"/>
 <text text-anchor="middle" x="697.5438" y="-86.3" font-family="Times,serif" font-size="14.00" fill="#000000">count_words__5</text>
 </g>
 <!-- split_words&#45;&gt;count_words__5 -->
@@ -78,7 +78,7 @@
 <!-- combine_counts -->
 <g id="node7" class="node">
 <title>combine_counts</title>
-<ellipse fill="none" stroke="#000000" cx="383.5438" cy="-18" rx="68.7879" ry="18"/>
+<ellipse fill="#d3d3d3" stroke="#000000" cx="383.5438" cy="-18" rx="68.7879" ry="18"/>
 <text text-anchor="middle" x="383.5438" y="-14.3" font-family="Times,serif" font-size="14.00" fill="#000000">combine_counts</text>
 </g>
 <!-- count_words__1&#45;&gt;combine_counts -->

@@ -153,8 +153,8 @@ class DAG:
             stack.extend(node.children)
             yield node
 
-    def write(self, dag_dir: utils.Openable):
-        return writer.DAGWriter(self, dag_dir).write()
+    def write(self, dag_dir: utils.Openable, dag_file_name=None):
+        return writer.DAGWriter(self, dag_dir, dag_file_name=dag_file_name).write()
 
 
 class DAGAbortCondition:

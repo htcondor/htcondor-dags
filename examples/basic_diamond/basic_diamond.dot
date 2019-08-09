@@ -1,5 +1,7 @@
 digraph G {
     size = "40, 80";
+    node [style=filled];
+
     split_words -> {count_words__1;count_words__2;count_words__3;count_words__4;count_words__5};
     {count_words__1;count_words__2;count_words__3;count_words__4;count_words__5} -> combine_counts;
 }

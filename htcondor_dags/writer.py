@@ -34,9 +34,11 @@ NOOP_SUBMIT_FILE_NAME = "__JOIN__.sub"
 class DAGWriter:
     """Not re-entrant!"""
 
-    def __init__(self, dag: "dag.DAG", path: Path):
+    def __init__(self, dag: "dag.DAG", path: Path, dag_file_name=None):
         self.dag = dag
         self.path = path
+
+        self.dag_file_name = dag_file_name or DAG_FILE_NAME
 
         self.join_counter = itertools.count()
         self.has_written_noop_file = False
@@ -48,7 +50,7 @@ class DAGWriter:
         self.write_submit_files_for_layers()
 
     def write_dag_file(self):
-        with (self.path / DAG_FILE_NAME).open(mode="w") as f:
+        with (self.path / self.dag_file_name).open(mode="w") as f:
             for line in self.yield_dag_file_lines():
                 f.write(line + "\n")
 
@@ -195,7 +197,7 @@ class DAGWriter:
         if script.retry:
             parts.extend(("DEFER", script.retry_status, script.retry_delay))
 
-        parts.extend((which.upper(), name, script.executable, script.arguments))
+        parts.extend((which.upper(), name, script.executable, *script.arguments))
 
         yield " ".join(str(p) for p in parts)
 

@@ -46,3 +46,6 @@ be to read through `make_dag.py` itself.
 1. Run `python make_dag.py`, which should create a `dagfile.dag` as
    well as a bunch of `*.sub` files in this directory.
 1. Run `condor_submit_dag dagfile.dag`.
+
+If everything goes well, you should end up with a file named `total_counts.txt`
+containing the number `2582`.
