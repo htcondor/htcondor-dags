@@ -441,6 +441,7 @@ class NodeLayer(BaseNode):
 
         self.submit_description = submit_description or htcondor.Submit({})
 
+        # todo: this is bad, should be an empty list
         if vars is None:
             vars = [{}]
         self.vars = list(vars)
