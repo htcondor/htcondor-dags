@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from htcondor import Submit
+import htcondor
 import htcondor_dags as dags
 
 # We will split words.txt into five chunks.
@@ -20,7 +20,7 @@ dag = dags.DAG()
 # Root layers are created from the DAG object itself.
 split_words = dag.layer(
     name="split_words",
-    submit_description=Submit(
+    submit_description=htcondor.Submit(
         {
             "executable": "split_words.py",
             "arguments": str(NUM_CHUNKS),
@@ -36,11 +36,11 @@ split_words = dag.layer(
 # the "child" method on the split layer object we got above.
 # A single real DAGMan node will be created for each element in the list passed
 # to vars.
-# Because NUM_SPLITS is 10, this will create 10 DAGMan nodes, one to process
+# Because NUM_CHUNKS is 5, this will create 5 DAGMan nodes, one to process
 # each chunk created by the previous layer.
 count_words = split_words.child(
     name="count_words",
-    submit_description=Submit(
+    submit_description=htcondor.Submit(
         {
             "executable": "count_words.py",
             "arguments": "$(word_set)",
@@ -59,7 +59,7 @@ count_words = split_words.child(
 # is easy in this case because we know the naming scheme.
 combine_counts = count_words.child(
     name="combine_counts",
-    submit_description=Submit(
+    submit_description=htcondor.Submit(
         {
             "executable": "combine_counts.py",
             "transfer_input_files": ", ".join(

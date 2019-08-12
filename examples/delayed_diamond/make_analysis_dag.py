@@ -3,7 +3,7 @@
 from pathlib import Path
 import glob
 
-from htcondor import Submit
+import htcondor
 import htcondor_dags as dags
 
 dag = dags.DAG()
@@ -18,7 +18,7 @@ num_chunks = len(glob.glob("words_*.txt"))
 
 count_words = dag.layer(
     name="count_words",
-    submit_description=Submit(
+    submit_description=htcondor.Submit(
         {
             "executable": "count_words.py",
             "arguments": "$(word_set)",

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from htcondor import Submit
+import htcondor
 import htcondor_dags as dags
 
 dag = dags.DAG()
@@ -12,7 +12,7 @@ dag = dags.DAG()
 # of chunks itself.
 split_words = dag.layer(
     name="split_words",
-    submit_description=Submit(
+    submit_description=htcondor.Submit(
         {
             "executable": "split_words.py",
             "transfer_input_files": "words.txt",
