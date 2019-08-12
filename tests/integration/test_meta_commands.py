@@ -59,7 +59,7 @@ def test_config_command_gets_written_if_config_given(dag_dir):
 
     assert (
         f"\nCONFIG {dags.CONFIG_FILE_NAME}\n"
-        in (dag_dir / dags.DAG_FILE_NAME).read_text()
+        in (dag_dir / dags.DEFAULT_DAG_FILE_NAME).read_text()
     )
 
 

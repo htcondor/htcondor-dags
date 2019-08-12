@@ -156,6 +156,34 @@ class DAG:
     def write(self, dag_dir: utils.Openable, dag_file_name=None):
         return writer.DAGWriter(self, dag_dir, dag_file_name=dag_file_name).write()
 
+    def describe(self) -> str:
+        rows = []
+
+        for node in self.walk(WalkOrder.BREADTH_FIRST):
+            if isinstance(node, NodeLayer):
+                type, name = "Layer", node.name
+                vars = len(node.vars)
+            elif isinstance(node, SubDAG):
+                type, name = "SubDag", node.name
+                vars = None
+            else:
+                raise Exception(f"Unrecognized node type: {node}")
+
+            children = len(node.children)
+
+            if len(node.parents) > 0:
+                parents = ", ".join(n.name for n in node.parents)
+            else:
+                parents = None
+
+            rows.append((type, name, vars, children, parents))
+
+        return utils.table(
+            headers=["Type", "Name", "# Nodes", "# Children", "Parents"],
+            rows=rows,
+            alignment={"Type": "ljust", "Parents": "ljust"},
+        )
+
 
 class DAGAbortCondition:
     def __init__(self, node_exit_value: int, dag_return_value: Optional[int] = None):

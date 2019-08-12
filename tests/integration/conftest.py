@@ -27,7 +27,7 @@ def dag_dir(tmp_path):
 
 
 def dagfile_text(dag_dir):
-    text = (dag_dir / dags.DAG_FILE_NAME).read_text()
+    text = (dag_dir / dags.DEFAULT_DAG_FILE_NAME).read_text()
     print(text)
     return text
 

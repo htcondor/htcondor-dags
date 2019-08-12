@@ -23,7 +23,7 @@ from .dag import (
     OneToOne,
     Script,
 )
-from .writer import DAG_FILE_NAME, CONFIG_FILE_NAME, SEPARATOR
+from .writer import DEFAULT_DAG_FILE_NAME, CONFIG_FILE_NAME, SEPARATOR
 from . import exceptions
 
 from .version import __version__, version_info
