@@ -13,7 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Dict, Iterable, Union, List, Any, Iterator, Callable, Tuple
+from typing import (
+    Optional,
+    Dict,
+    Iterable,
+    Union,
+    List,
+    Any,
+    Iterator,
+    Callable,
+    Tuple,
+    TypeVar,
+)
 import logging
 
 import collections
@@ -85,82 +96,60 @@ def _check_node_name_uniqueness(func):
 class DAG:
     def __init__(
         self,
-        jobstate_log: Optional[utils.Openable] = None,
-        max_jobs_by_category: Optional[Dict[str, int]] = None,
         dagman_config: Optional[Dict[str, Any]] = None,
         dagman_job_attributes: Optional[Dict[str, Any]] = None,
+        max_jobs_by_category: Optional[Dict[str, int]] = None,
         dot_config: Optional[DotConfig] = None,
+        jobstate_log: Optional[utils.Openable] = None,
         node_status_file: Optional[NodeStatusFile] = None,
     ):
+        """
+        Parameters
+        ----------
+        dagman_config
+            A mapping of DAGMan configuration options.
+        dagman_job_attributes
+            A mapping that describes additional HTCondor JobAd attributes for
+            the DAGMan job itself.
+        max_jobs_by_category
+            A mapping that describes the maximum number of jobs (values) that
+            should be run simultaneously from each category (keys).
+        dot_config
+            A :class:`DotConfig` that tells DAGMan how to write out DOT files
+            that describe the state of the DAG.
+        jobstate_log
+            The path to the jobstate log. If not given, the jobstate log will
+            not be written.
+        node_status_file
+            The path to the node status file. If not given, the node status file
+            will not be written.
+        """
         self._nodes = NodeStore()
         self._edges = EdgeStore()
+        self._final_node = None
+
         self.jobstate_log = jobstate_log if jobstate_log is None else Path(jobstate_log)
         self.max_jobs_per_category = max_jobs_by_category or {}
         self.dagman_config = dagman_config or {}
         self.dagman_job_attrs = dagman_job_attributes or {}
         self.dot_config = dot_config
         self.node_status_file = node_status_file
-        self._final_node = None
 
     @property
     def nodes(self):
+        """Iterate over all of the nodes in the DAG, in no particular order."""
         yield from self._nodes
 
-    @property
-    def edges(self) -> Iterator[Tuple[Tuple["BaseNode", "BaseNode"], "EdgeType"]]:
-        yield from self._edges
-
-    def __contains__(self, node) -> bool:
-        return node in self._nodes
-
-    @_check_node_name_uniqueness
-    def layer(self, **kwargs):
-        node = NodeLayer(dag=self, **kwargs)
-        self._nodes.add(node)
-        return node
-
-    @_check_node_name_uniqueness
-    def subdag(self, **kwargs):
-        node = SubDAG(dag=self, **kwargs)
-        self._nodes.add(node)
-        return node
-
-    @_check_node_name_uniqueness
-    def final(self, **kwargs):
-        node = FinalNode(dag=self, **kwargs)
-        self._final_node = node
-        return node
-
-    def select(self, selector: Callable[["BaseNode"], bool]) -> "Nodes":
-        return Nodes(*(node for name, node in self._nodes.items() if selector(node)))
-
-    def glob(self, pattern: str) -> "Nodes":
-        return self.select(lambda node: fnmatch.fnmatchcase(node.name, pattern))
-
-    @property
-    def node_to_children(self) -> Dict["BaseNode", "Nodes"]:
-        d = {n: set() for n in self.nodes}
-        for parent, child in self.edges:
-            d[parent].add(child)
-
-        return {k: Nodes(v) for k, v in d.items()}
-
-    @property
-    def node_to_parents(self) -> Dict["BaseNode", "Nodes"]:
-        d = {n: set() for n in self.nodes}
-        for parent, child in self.edges:
-            d[child].add(parent)
-
-        return {k: Nodes(v) for k, v in d.items()}
-
-    def roots(self) -> "Nodes":
-        return Nodes(
-            child
-            for child, parents in self.node_to_parents.items()
-            if len(parents) == 0
-        )
-
     def walk(self, order: WalkOrder = WalkOrder.DEPTH_FIRST) -> Iterator["BaseNode"]:
+        """
+        Iterate over all of the nodes in the DAG, in some sensible order.
+
+        Parameters
+        ----------
+        order
+            Walk depth-first (children before siblings)
+            or breadth-first (siblings before children).
+        """
         seen = set()
         stack = collections.deque(self.roots())
 
@@ -179,10 +168,109 @@ class DAG:
             stack.extend(node.children)
             yield node
 
-    def write(self, dag_dir: utils.Openable, dag_file_name=None):
+    @property
+    def edges(self) -> Iterator[Tuple[Tuple["BaseNode", "BaseNode"], "EdgeType"]]:
+        """Iterate over ((parent, child), edge_type) tuples."""
+        yield from self._edges
+
+    def __contains__(self, node) -> bool:
+        return node in self._nodes
+
+    @_check_node_name_uniqueness
+    def layer(self, **kwargs) -> "NodeLayer":
+        """Create a new :class:`NodeLayer` with no parents or children."""
+        node = NodeLayer(dag=self, **kwargs)
+        self._nodes.add(node)
+        return node
+
+    @_check_node_name_uniqueness
+    def subdag(self, **kwargs) -> "SubDAG":
+        """Create a new :class:`SubDAG` with no parents or children."""
+        node = SubDAG(dag=self, **kwargs)
+        self._nodes.add(node)
+        return node
+
+    @_check_node_name_uniqueness
+    def final(self, **kwargs) -> "FinalNode":
+        """Create the FINAL node of the DAG."""
+        node = FinalNode(dag=self, **kwargs)
+        self._final_node = node
+        return node
+
+    def select(self, selector: Callable[["BaseNode"], bool]) -> "Nodes":
+        """Return a :class:`Nodes` of the nodes in the DAG that satisfy ``selector``."""
+        return Nodes(*(node for name, node in self._nodes.items() if selector(node)))
+
+    def glob(self, pattern: str) -> "Nodes":
+        """Return a :class:`Nodes` of the nodes in the DAG whose names match the glob ``pattern``."""
+        return self.select(lambda node: fnmatch.fnmatchcase(node.name, pattern))
+
+    @property
+    def node_to_children(self) -> Dict["BaseNode", "Nodes"]:
+        """
+        Return a dictionary that maps each node to a :class:`Nodes`
+        containing its children.
+        The :class:`Nodes` will be empty if the node has no children.
+        """
+        d = {n: set() for n in self.nodes}
+        for parent, child in self.edges:
+            d[parent].add(child)
+
+        return {k: Nodes(v) for k, v in d.items()}
+
+    @property
+    def node_to_parents(self) -> Dict["BaseNode", "Nodes"]:
+        """
+        Return a dictionary that maps each node to a :class:`Nodes`
+        containing its parents.
+        The :class:`Nodes` will be empty if the node has no parents.
+        """
+        d = {n: set() for n in self.nodes}
+        for parent, child in self.edges:
+            d[child].add(parent)
+
+        return {k: Nodes(v) for k, v in d.items()}
+
+    def roots(self) -> "Nodes":
+        """Return a :class:`Nodes` of the nodes in the DAG that have no parents."""
+        return Nodes(
+            child
+            for child, parents in self.node_to_parents.items()
+            if len(parents) == 0
+        )
+
+    def leaves(self) -> "Nodes":
+        """Return a :class:`Nodes` of the nodes in the DAG that have no children."""
+        return Nodes(
+            parent
+            for parent, children in self.node_to_children.items()
+            if len(children) == 0
+        )
+
+    def write(
+        self, dag_dir: utils.Openable, dag_file_name: Optional[str] = None
+    ) -> Path:
+        """
+        Write out the entire DAG to the given directory.
+        This includes the DAG description file itself, as well as any associated
+        submit descriptions.
+
+        Parameters
+        ----------
+        dag_dir
+            The directory to write the DAG files to.
+        dag_file_name
+            The name of the DAG description file itself.
+
+        Returns
+        -------
+        dag_dir :
+            Returns the path to the DAG directory.
+        """
         return writer.DAGWriter(self, dag_dir, dag_file_name=dag_file_name).write()
 
     def describe(self) -> str:
+        """Return a tabular description of the DAG's structure."""
         rows = []
 
         for node in self.walk(WalkOrder.BREADTH_FIRST):
@@ -223,12 +311,29 @@ class DAGAbortCondition:
 class Script:
     def __init__(
         self,
-        executable,
+        executable: Union[str, Path],
         arguments: Optional[List[str]] = None,
         retry: bool = False,
         retry_status: int = 1,
         retry_delay: int = 0,
     ):
+        """
+        Parameters
+        ----------
+        executable
+            The path to the executable to run.
+        arguments
+            The individual arguments to the executable. Keep in mind that these
+            are evaluated as soon as the :class:`Script` is created!
+        retry
+            ``True`` if the script can be retried on failure.
+        retry_status
+            If the script exits with this status, the script run will be
+            considered a failure for the purposes of retrying.
+        retry_delay
+            The number of seconds to wait after a script failure before
+            retrying.
+        """
         self.executable = executable
         if arguments is None:
             arguments = []
@@ -250,11 +355,22 @@ class EdgeType(abc.ABC):
 
 
 class ManyToMany(EdgeType):
+    """
+    This edge connects two layers "densely": every node in the child layer
+    is a child of every node in the parent layer.
+    """
+
     def is_edge(self, parent_index, child_index) -> bool:
         return True
 
 
 class OneToOne(EdgeType):
+    """
+    This edge connects two layers "linearly": each underlying node in the child
+    layer is a child of the corresponding underlying node with the same index
+    in the parent layer.
+    """
+
     def is_edge(self, parent_index, child_index) -> bool:
         return parent_index == child_index
 
@@ -351,8 +467,12 @@ class NodeStore:
         return len(self.nodes)
 
 
-def flatten(nested_iterable) -> List[Any]:
-    return list(itertools.chain.from_iterable(nested_iterable))
+T = TypeVar("T")
+
+
+def flatten(nested_iterable: Iterator[Iterator[T]]) -> Iterator[T]:
+    """Flatt"""
+    yield from itertools.chain.from_iterable(nested_iterable)
 
 
 @functools.total_ordering
