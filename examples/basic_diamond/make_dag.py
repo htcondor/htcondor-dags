@@ -13,12 +13,12 @@ NUM_CHUNKS = 5
 # Meta-information like DAGMan configuration, the location of the node status
 # file, etc., lives on this object.
 # It's methods are used to create node layers and possibly subDAGs.
-dag = dags.DAG()
+diamond = dags.DAG()
 
 # This is the "split" step.
 # It has no parent layer, so it is a root layer of the DAG.
 # Root layers are created from the DAG object itself.
-split_words = dag.layer(
+split_words = diamond.layer(
     name="split_words",
     submit_description=htcondor.Submit(
         {
@@ -78,5 +78,5 @@ combine_counts = count_words.child(
 # If you write it out to a different directory, you may need to be careful
 # about filepaths in your submit descriptions!
 this_dir = Path(__file__).parent
-dag.write(this_dir)
+diamond.write(this_dir)
 print(f"Wrote DAG files to {this_dir}")

@@ -6,7 +6,7 @@ import glob
 import htcondor
 import htcondor_dags as dags
 
-dag = dags.DAG()
+analysis_dag = dags.DAG()
 
 
 # This is the "count words in chunk" step, which now lives in the sub-DAG.
@@ -16,7 +16,7 @@ dag = dags.DAG()
 # determine the number of files in this directory that match the pattern
 num_chunks = len(glob.glob("words_*.txt"))
 
-count_words = dag.layer(
+count_words = analysis_dag.layer(
     name="count_words",
     submit_description=htcondor.Submit(
         {
@@ -52,5 +52,5 @@ combine_counts = count_words.child(
 # If you write it out to a different directory, you may need to be careful
 # about filepaths in your submit descriptions!
 this_dir = Path(__file__).parent
-dag.write(this_dir, dag_file_name="analysis.dag")
+analysis_dag.write(this_dir, dag_file_name="analysis.dag")
 print(f"Wrote DAG files to {this_dir}")
