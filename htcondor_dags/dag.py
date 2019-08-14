@@ -27,7 +27,7 @@ import abc
 
 import htcondor
 
-from . import writer, utils
+from . import writer, utils, exceptions
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -65,6 +65,23 @@ class WalkOrder(enum.Enum):
     BREADTH_FIRST = "BREADTH"
 
 
+def _check_node_name_uniqueness(func):
+    def wrapper(dag: "DAG", **kwargs):
+        name = kwargs["name"]
+        if name in dag._nodes:
+            raise exceptions.DuplicateNodeName(
+                f"the DAG already has a node named {name}: {dag._nodes[name]}"
+            )
+        if dag._final_node is not None and dag._final_node.name == name:
+            raise exceptions.DuplicateNodeName(
+                f"the DAG already has a node named {name}: {dag._final_node}"
+            )
+
+        return func(dag, **kwargs)
+
+    return wrapper
+
+
 class DAG:
     def __init__(
         self,
@@ -96,16 +113,19 @@ class DAG:
     def __contains__(self, node) -> bool:
         return node in self._nodes
 
+    @_check_node_name_uniqueness
     def layer(self, **kwargs):
         node = NodeLayer(dag=self, **kwargs)
         self._nodes.add(node)
         return node
 
+    @_check_node_name_uniqueness
     def subdag(self, **kwargs):
         node = SubDAG(dag=self, **kwargs)
         self._nodes.add(node)
         return node
 
+    @_check_node_name_uniqueness
     def final(self, **kwargs):
         node = FinalNode(dag=self, **kwargs)
         self._final_node = node
@@ -300,13 +320,13 @@ class NodeStore:
             elif isinstance(node, Nodes):
                 self.remove(node)
 
-    def __getitem__(self, node: "BaseNode"):
+    def __getitem__(self, node: Union["BaseNode", str]):
         if isinstance(node, str):
             return self.nodes[node]
         elif isinstance(node, BaseNode):
             return self.nodes[node.name]
         else:
-            raise KeyError()
+            raise TypeError(f"Nodes can be retrieved by name or value")
 
     def __iter__(self) -> Iterator["BaseNode"]:
         yield from self.nodes.values()

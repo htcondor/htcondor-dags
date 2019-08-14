@@ -13,14 +13,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
 
-class DAGsException(Exception):
-    pass
-
-
-class OneToOneEdgeNeedsSameNumberOfVars(DAGsException):
-    pass
+import htcondor_dags as dags
+from .conftest import dagfile_lines, dagfile_text
 
 
-class DuplicateNodeName(DAGsException):
-    pass
+def test_two_node_layers_with_same_name_raises(dag):
+    dag.layer(name="alice")
+
+    with pytest.raises(dags.exceptions.DuplicateNodeName):
+        dag.layer(name="alice")
+
+
+def test_layer_then_final_raises(dag):
+    dag.layer(name="alice")
+
+    with pytest.raises(dags.exceptions.DuplicateNodeName):
+        dag.final(name="alice")
+
+
+def test_final_then_layer_raises(dag):
+    dag.final(name="alice")
+
+    with pytest.raises(dags.exceptions.DuplicateNodeName):
+        dag.layer(name="alice")
