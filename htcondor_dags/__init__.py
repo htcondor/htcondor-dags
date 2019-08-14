@@ -23,6 +23,8 @@ from .dag import (
     OneToOne,
     Script,
     FinalNode,
+    WalkOrder,
+    Nodes,
 )
 from .writer import DEFAULT_DAG_FILE_NAME, CONFIG_FILE_NAME, SEPARATOR
 from . import exceptions

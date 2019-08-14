@@ -36,8 +36,3 @@ def dagfile_text(dag_dir, dag_file_name=None):
 
 def dagfile_lines(dag_dir, dag_file_name=None):
     return dagfile_text(dag_dir, dag_file_name).splitlines()
-
-
-@pytest.fixture(scope="function")
-def dag():
-    return dags.DAG()

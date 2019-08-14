@@ -24,3 +24,7 @@ class OneToOneEdgeNeedsSameNumberOfVars(DAGsException):
 
 class DuplicateNodeName(DAGsException):
     pass
+
+
+class UnrecognizedWalkOrder(DAGsException):
+    pass

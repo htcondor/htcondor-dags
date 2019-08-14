@@ -159,7 +159,9 @@ class DAG:
             elif order is WalkOrder.BREADTH_FIRST:
                 node = stack.popleft()
             else:
-                raise Exception(f"Unrecognized {WalkOrder.__name__}")
+                raise exceptions.UnrecognizedWalkOrder(
+                    f"Unrecognized {WalkOrder.__name__}: {order}"
+                )
 
             if node in seen:
                 continue
@@ -466,6 +468,9 @@ class NodeStore:
     def __len__(self) -> int:
         return len(self.nodes)
 
+    def __eq__(self, other):
+        return self.nodes == other.nodes
+
 
 T = TypeVar("T")
 
@@ -643,6 +648,9 @@ class Nodes:
         nodes = flatten(nodes)
         for node in nodes:
             self.nodes.add(node)
+
+    def __eq__(self, other):
+        return self.nodes == other.nodes
 
     def __len__(self) -> int:
         return len(self.nodes)
