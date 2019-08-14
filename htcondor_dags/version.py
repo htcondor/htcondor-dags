@@ -15,17 +15,17 @@
 
 from typing import Tuple
 
-__version__ = '0.0.1'
+__version__ = "0.0.1"
 
 
 def version() -> str:
     """Return a string containing human-readable version information."""
-    return f'htcondor-dags version {__version__}'
+    return f"htcondor-dags version {__version__}"
 
 
 def _version_info(v: str) -> Tuple[int, int, int, str]:
     """Un-format ``__version__``."""
-    return (*(int(x) for x in v[:5].split('.')), v[5:])
+    return (*(int(x) for x in v[:5].split(".")), v[5:])
 
 
 def version_info() -> Tuple[int, int, int, str]:

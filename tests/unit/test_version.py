@@ -13,4 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .version import __version__, version
+import htcondor_dags as dags
+
+
+def test_version_string():
+    assert dags.__version__ in dags.version()
