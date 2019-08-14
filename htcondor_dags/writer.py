@@ -84,6 +84,11 @@ class DAGWriter:
             )
         yield "# END NODES AND EDGES"
 
+        if self.dag._final_node is not None:
+            yield "# FINAL NODE"
+            yield from self.yield_node_lines(self.dag._final_node)
+            yield "# END FINAL NODE"
+
     def yield_dag_meta_lines(self):
         if len(self.dag.dagman_config) > 0:
             self.write_dagman_config_file()
@@ -128,6 +133,12 @@ class DAGWriter:
             yield from self.yield_layer_lines(node)
         elif isinstance(node, dag.SubDAG):
             yield from self.yield_subdag_lines(node)
+        elif isinstance(node, dag.FinalNode):
+            yield from self.yield_final_node_lines(node)
+        else:
+            raise TypeError(
+                f"unrecongnized node type ({node.__class__}) for node {node}"
+            )
 
     def yield_layer_lines(self, layer: "dag.NodeLayer") -> Iterator[str]:
         node_meta_parts = self.get_node_meta_parts(layer)
@@ -153,6 +164,10 @@ class DAGWriter:
         yield " ".join(parts)
 
         yield from self.yield_node_meta_lines(subdag, subdag.name)
+
+    def yield_final_node_lines(self, node: "dag.FinalNode") -> Iterator[str]:
+        yield f"FINAL {node.name} {node.name}.sub"
+        yield from self.yield_node_meta_lines(node, node.name)
 
     def get_node_meta_parts(self, node: "dag.BaseNode") -> List[str]:
         parts = []

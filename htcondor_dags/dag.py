@@ -83,6 +83,7 @@ class DAG:
         self.dagman_job_attrs = dagman_job_attributes or {}
         self.dot_config = dot_config
         self.node_status_file = node_status_file
+        self._final_node = None
 
     @property
     def nodes(self):
@@ -103,6 +104,11 @@ class DAG:
     def subdag(self, **kwargs):
         node = SubDAG(dag=self, **kwargs)
         self._nodes.add(node)
+        return node
+
+    def final(self, **kwargs):
+        node = FinalNode(dag=self, **kwargs)
+        self._final_node = node
         return node
 
     def select(self, selector: Callable[["BaseNode"], bool]) -> "Nodes":
@@ -480,6 +486,15 @@ class SubDAG(BaseNode):
         super().__init__(dag, **kwargs)
 
         self.dag_file = dag_file
+
+
+class FinalNode(BaseNode):
+    def __init__(
+        self, dag: DAG, submit_description: Optional[htcondor.Submit] = None, **kwargs
+    ):
+        super().__init__(dag, **kwargs)
+
+        self.submit_description = submit_description or htcondor.Submit({})
 
 
 class Nodes:

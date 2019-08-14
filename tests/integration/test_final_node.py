@@ -13,18 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .dag import (
-    DAG,
-    NodeLayer,
-    SubDAG,
-    DotConfig,
-    NodeStatusFile,
-    ManyToMany,
-    OneToOne,
-    Script,
-    FinalNode,
-)
-from .writer import DEFAULT_DAG_FILE_NAME, CONFIG_FILE_NAME, SEPARATOR
-from . import exceptions
+import pytest
 
-from .version import __version__, version_info
+from pathlib import Path
+
+import htcondor_dags as dags
+from .conftest import dagfile_lines, dagfile_text
+
+
+def test_final_node_line(dag_dir, dag):
+    dag.final(name="fin")
+
+    dag.write(dag_dir)
+
+    assert "FINAL fin fin.sub" in dagfile_lines(dag_dir)

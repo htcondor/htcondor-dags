@@ -26,14 +26,16 @@ def dag_dir(tmp_path):
     return d
 
 
-def dagfile_text(dag_dir):
-    text = (dag_dir / dags.DEFAULT_DAG_FILE_NAME).read_text()
+def dagfile_text(dag_dir, dag_file_name=None):
+    if dag_file_name is None:
+        dag_file_name = dags.DEFAULT_DAG_FILE_NAME
+    text = (dag_dir / dag_file_name).read_text()
     print(text)
     return text
 
 
-def dagfile_lines(dag_dir):
-    return dagfile_text(dag_dir).splitlines()
+def dagfile_lines(dag_dir, dag_file_name=None):
+    return dagfile_text(dag_dir, dag_file_name).splitlines()
 
 
 @pytest.fixture(scope="function")
