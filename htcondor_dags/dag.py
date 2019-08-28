@@ -532,7 +532,7 @@ class BaseNode(abc.ABC):
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return NotImplemented
-        return self.name == other.name
+        return self._dag == other._dag and self.name == other.name
 
     def __lt__(self, other):
         if not isinstance(other, NodeLayer):

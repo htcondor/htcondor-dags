@@ -236,7 +236,9 @@ class DAGWriter:
         elif isinstance(node, dag.NodeLayer):
             return {idx: self.get_node_name(node, idx) for idx in range(len(node.vars))}
         else:
-            raise Exception(f"Was not able to generate a node names for node {node}")
+            raise TypeError(
+                f"Was not able to generate node names for node {node} because it was not a recognized node type"
+            )
 
     def yield_edge_lines(self, node: "dag.BaseNode") -> Iterator[str]:
         parents = self.get_indexes_to_node_names(node)

@@ -22,6 +22,7 @@ from .dag import (
     ManyToMany,
     OneToOne,
     Script,
+    DAGAbortCondition,
     FinalNode,
     WalkOrder,
     Nodes,

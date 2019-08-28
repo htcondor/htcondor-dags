@@ -13,15 +13,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-
 import htcondor_dags as dags
 from .conftest import dagfile_lines, dagfile_text
 
 
-def test_final_node_line(dag_dir, dag):
-    dag.final(name="fin")
+def test_dag_contains_child():
+    a = dags.DAG()
 
-    dag.write(dag_dir)
+    a_child = a.layer(name="a_child")
 
-    assert "FINAL fin fin.sub" in dagfile_lines(dag_dir)
+    assert a_child in a
+
+
+def test_other_does_not_contain_child():
+    a = dags.DAG()
+    b = dags.DAG()
+
+    a_child = a.layer(name="a_child")
+
+    assert a_child not in b
+
+
+def test_other_does_not_contain_child_even_if_same_name():
+    a = dags.DAG()
+    b = dags.DAG()
+
+    a_child = a.layer(name="child")
+    b_child = b.layer(name="child")
+
+    assert a_child not in b
+    assert b_child not in a
+
+
+def test_roots_and_leaves(dag):
+    root = dag.layer(name="root")
+    middle = root.child(name="middle")
+    leaf = middle.child(name="leaf")
+
+    assert list(dag.roots()) == [root]
+    assert list(dag.leaves()) == [leaf]

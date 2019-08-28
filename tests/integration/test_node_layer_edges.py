@@ -15,8 +15,6 @@
 
 import pytest
 
-from pathlib import Path
-
 import htcondor_dags as dags
 from .conftest import dagfile_lines, dagfile_text
 
