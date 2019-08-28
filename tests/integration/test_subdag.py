@@ -13,11 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-
 import htcondor_dags as dags
+from .conftest import dagfile_lines, dagfile_text
 
 
-@pytest.fixture(scope="function")
-def dag():
-    return dags.DAG()
+def test_subdag_name_appears(dag_dir, dag):
+    dag.subdag(name="foobar", dag_file="subdag.dag")
+
+    dag.write(dag_dir)
+
+    assert "foobar" in dagfile_text(dag_dir)
+
+
+def test_subdag_line_appears(dag_dir, dag):
+    dag.subdag(name="foobar", dag_file="subdag.dag")
+
+    dag.write(dag_dir)
+
+    assert "SUBDAG EXTERNAL foobar subdag.dag" in dagfile_lines(dag_dir)

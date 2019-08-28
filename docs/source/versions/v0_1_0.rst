@@ -1,0 +1,18 @@
+v0.1.0
+======
+
+New Features
+------------
+
+* Can construct DAGs via an object-oriented interface. "Layers" of nodes that
+  share a submit file can be specified cleanly. SubDAGs are also supported.
+
+
+Bug Fixes
+---------
+
+
+Known Issues
+------------
+
+* Generic edges are not yet supported.

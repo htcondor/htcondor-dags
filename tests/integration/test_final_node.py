@@ -16,8 +16,12 @@
 import pytest
 
 import htcondor_dags as dags
+from .conftest import dagfile_lines, dagfile_text
 
 
-@pytest.fixture(scope="function")
-def dag():
-    return dags.DAG()
+def test_final_node_line(dag_dir, dag):
+    dag.final(name="fin")
+
+    dag.write(dag_dir)
+
+    assert "FINAL fin fin.sub" in dagfile_lines(dag_dir)

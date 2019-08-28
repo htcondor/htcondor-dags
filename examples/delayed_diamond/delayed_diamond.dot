@@ -1,0 +1,19 @@
+digraph G {
+    size = "40, 80";
+    node [style = filled];
+
+    subgraph cluster_split {
+        label = "split.dag";
+        split_words -> make_analysis_dag [label = "  POST"];
+        make_analysis_dag [label = "make_analysis_dag.py"];
+        make_analysis_dag -> analysis_dag [label = "  SUBDAG"];
+        analysis_dag [shape = record, label = "analysis.dag"];
+    }
+
+    subgraph cluster_analysis {
+        label = "analysis.dag";
+        {count_words__1; count_words__2; count_words__3; count_words__4} -> combine_counts;
+    }
+
+    analysis_dag -> {count_words__1; count_words__2; count_words__3; count_words__4} [style=invis];
+}

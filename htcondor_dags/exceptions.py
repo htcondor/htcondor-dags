@@ -13,11 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
 
-import htcondor_dags as dags
+class DAGsException(Exception):
+    pass
 
 
-@pytest.fixture(scope="function")
-def dag():
-    return dags.DAG()
+class OneToOneEdgeNeedsSameNumberOfVars(DAGsException):
+    pass
+
+
+class DuplicateNodeName(DAGsException):
+    pass
+
+
+class UnrecognizedWalkOrder(DAGsException):
+    pass

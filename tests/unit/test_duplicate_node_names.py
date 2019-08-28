@@ -18,6 +18,22 @@ import pytest
 import htcondor_dags as dags
 
 
-@pytest.fixture(scope="function")
-def dag():
-    return dags.DAG()
+def test_two_node_layers_with_same_name_raises(dag):
+    dag.layer(name="alice")
+
+    with pytest.raises(dags.exceptions.DuplicateNodeName):
+        dag.layer(name="alice")
+
+
+def test_layer_then_final_raises(dag):
+    dag.layer(name="alice")
+
+    with pytest.raises(dags.exceptions.DuplicateNodeName):
+        dag.final(name="alice")
+
+
+def test_final_then_layer_raises(dag):
+    dag.final(name="alice")
+
+    with pytest.raises(dags.exceptions.DuplicateNodeName):
+        dag.layer(name="alice")
