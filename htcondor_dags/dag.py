@@ -77,6 +77,7 @@ class WalkOrder(enum.Enum):
 
 
 def _check_node_name_uniqueness(func):
+    @functools.wraps(func)
     def wrapper(dag: "DAG", **kwargs):
         name = kwargs["name"]
         if name in dag._nodes:
