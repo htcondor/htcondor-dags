@@ -26,33 +26,25 @@ ARG HTCONDOR_VERSION=8.9
 ARG MINICONDA_VERSION=latest
 
 # environment setup
-ENV DEBIAN_FRONTEND=noninteractive \
-    LC_ALL=en_US.UTF-8 \
-    LANG=en_US.UTF-8 \
-    LANGUAGE=en_US.UTF-8
-
-# faster container builds
-RUN apt-get update \
- && apt-get -y install --no-install-recommends software-properties-common \
- && add-apt-repository ppa:apt-fast/stable \
- && apt-get update \
- && apt-get -y install apt-fast \
- && apt-get -y clean \
- && rm -rf /var/lib/apt/lists/*
+ENV DEBIAN_FRONTEND=noninteractive
 
 # install utils and dependencies
-RUN apt-fast update \
- && apt-fast -y install --no-install-recommends sudo vim less build-essential git gnupg wget ca-certificates locales \
+RUN apt-get update \
+ && apt-get -y install --no-install-recommends vim less git gnupg wget ca-certificates locales \
  && apt-get -y clean \
  && rm -rf /var/lib/apt/lists/* \
  && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
  && locale-gen
 
+ENV LC_ALL=en_US.UTF-8 \
+    LANG=en_US.UTF-8 \
+    LANGUAGE=en_US.UTF-8
+
 # install HTCondor version specified in config
 RUN wget -qO - https://research.cs.wisc.edu/htcondor/ubuntu/HTCondor-Release.gpg.key | apt-key add - \
  && echo "deb http://research.cs.wisc.edu/htcondor/ubuntu/${HTCONDOR_VERSION}/bionic bionic contrib" >> /etc/apt/sources.list \
- && apt-fast -y update \
- && apt-fast -y install --no-install-recommends htcondor \
+ && apt-get -y update \
+ && apt-get -y install --no-install-recommends htcondor \
  && apt-get -y clean \
  && rm -rf /var/lib/apt/lists/*
 
