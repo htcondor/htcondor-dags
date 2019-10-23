@@ -109,3 +109,7 @@ venv.bak/
 
 Dockerfile
 dr
+
+/examples/mandelbrot/mandelbrot-dag/
+/examples/mandelbrot/test.png
+/examples/mandelbrot/test.ppm

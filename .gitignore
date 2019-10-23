@@ -106,3 +106,7 @@ venv.bak/
 # Editors
 .idea/
 .vscode/
+
+/examples/mandelbrot/mandelbrot-dag/
+/examples/mandelbrot/test.png
+/examples/mandelbrot/test.ppm
