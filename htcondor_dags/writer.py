@@ -36,7 +36,7 @@ class DAGWriter:
 
     def __init__(self, dag: "dag.DAG", path: Path, dag_file_name: Optional[str] = None):
         self.dag = dag
-        self.path = path
+        self.path = Path(path).absolute()
 
         self.dag_file_name = dag_file_name or DEFAULT_DAG_FILE_NAME
 
@@ -49,7 +49,7 @@ class DAGWriter:
         self.write_dag_file()
         self.write_submit_files_for_layers()
 
-        return self.path
+        return self.path / self.dag_file_name
 
     def write_dag_file(self):
         with (self.path / self.dag_file_name).open(mode="w") as f:
