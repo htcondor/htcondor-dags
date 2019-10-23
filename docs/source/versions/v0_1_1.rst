@@ -1,0 +1,18 @@
+v0.1.1
+======
+
+New Features
+------------
+
+
+Bug Fixes
+---------
+
+* The ``requirements.txt`` file is now correctly included in the source
+  distribution, so the source distribution now actually works. Thanks Duncan!
+  PR: https://github.com/htcondor/htcondor-dags/pull/3
+
+Known Issues
+------------
+
+* Generic edges are not yet supported.
