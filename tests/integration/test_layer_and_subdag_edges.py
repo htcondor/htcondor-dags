@@ -42,7 +42,7 @@ def test_two_parents_one_child(dag_dir, dag):
 
 def test_one_parent_two_children(dag_dir, dag):
     parent = dag.subdag(name="parent", dag_file="foobar.dag")
-    child = parent.child(name="child", vars=[{}, {}])
+    child = parent.child_layer(name="child", vars=[{}, {}])
 
     dag.write(dag_dir)
 

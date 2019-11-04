@@ -16,7 +16,7 @@ This will necessarily change the structure of our workflow. In the Basic Diamond
 example, the `count_words` layer looked like this:
 
 ```python
-count_words = split_words.child(
+count_words = split_words.child_layer(
     name="count_words",
     submit_description=Submit(
         {

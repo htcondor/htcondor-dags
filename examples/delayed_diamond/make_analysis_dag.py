@@ -31,7 +31,7 @@ count_words = analysis_dag.layer(
 )
 
 # This is the "combine the counts from each chunk" step.
-combine_counts = count_words.child(
+combine_counts = count_words.child_layer(
     name="combine_counts",
     submit_description=htcondor.Submit(
         {

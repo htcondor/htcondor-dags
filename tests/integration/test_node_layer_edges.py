@@ -21,7 +21,7 @@ from .conftest import dagfile_lines, dagfile_text
 
 def test_one_parent_one_child(dag_dir, dag):
     parent = dag.layer(name="parent")
-    child = parent.child(name="child")
+    child = parent.child_layer(name="child")
 
     dag.write(dag_dir)
 
@@ -30,7 +30,7 @@ def test_one_parent_one_child(dag_dir, dag):
 
 def test_two_parents_one_child(dag_dir, dag):
     parent = dag.layer(name="parent", vars=[{}, {}])
-    child = parent.child(name="child")
+    child = parent.child_layer(name="child")
 
     dag.write(dag_dir)
 
@@ -42,7 +42,7 @@ def test_two_parents_one_child(dag_dir, dag):
 
 def test_one_parent_two_children(dag_dir, dag):
     parent = dag.layer(name="parent")
-    child = parent.child(name="child", vars=[{}, {}])
+    child = parent.child_layer(name="child", vars=[{}, {}])
 
     dag.write(dag_dir)
 
@@ -54,7 +54,7 @@ def test_one_parent_two_children(dag_dir, dag):
 
 def test_two_parents_two_children_creates_join_node(dag_dir, dag):
     parent = dag.layer(name="parent", vars=[{}, {}])
-    child = parent.child(name="child", vars=[{}, {}])
+    child = parent.child_layer(name="child", vars=[{}, {}])
 
     dag.write(dag_dir)
 
@@ -71,7 +71,7 @@ def test_two_parents_two_children_creates_join_node(dag_dir, dag):
 
 def test_two_parents_two_children_one_to_one(dag_dir, dag):
     parent = dag.layer(name="parent", vars=[{}, {}])
-    child = parent.child(name="child", vars=[{}, {}], type=dags.OneToOne())
+    child = parent.child_layer(name="child", vars=[{}, {}], type=dags.OneToOne())
 
     dag.write(dag_dir)
 
@@ -82,7 +82,7 @@ def test_two_parents_two_children_one_to_one(dag_dir, dag):
 
 def test_two_parents_three_children_one_to_one_raises(dag_dir, dag):
     parent = dag.layer(name="parent", vars=[{}, {}])
-    child = parent.child(name="child", vars=[{}, {}, {}], type=dags.OneToOne())
+    child = parent.child_layer(name="child", vars=[{}, {}, {}], type=dags.OneToOne())
 
     with pytest.raises(dags.exceptions.OneToOneEdgeNeedsSameNumberOfVars):
         dag.write(dag_dir)

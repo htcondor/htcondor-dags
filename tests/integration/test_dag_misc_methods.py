@@ -47,8 +47,8 @@ def test_other_does_not_contain_child_even_if_same_name():
 
 def test_roots_and_leaves(dag):
     root = dag.layer(name="root")
-    middle = root.child(name="middle")
-    leaf = middle.child(name="leaf")
+    middle = root.child_layer(name="middle")
+    leaf = middle.child_layer(name="leaf")
 
     assert list(dag.roots()) == [root]
     assert list(dag.leaves()) == [leaf]

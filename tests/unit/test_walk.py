@@ -20,8 +20,8 @@ import htcondor_dags as dags
 
 def test_walk_depth_first(dag):
     a = dag.layer(name="a")
-    b = a.child(name="b")
-    c = a.child(name="c")
+    b = a.child_layer(name="b")
+    c = a.child_layer(name="c")
     d = dag.layer(name="d")
     d.add_parents(b, c)
 
@@ -32,8 +32,8 @@ def test_walk_depth_first(dag):
 
 def test_walk_breadth_first(dag):
     a = dag.layer(name="a")
-    b = a.child(name="b")
-    c = a.child(name="c")
+    b = a.child_layer(name="b")
+    c = a.child_layer(name="c")
     d = dag.layer(name="d")
     d.add_parents(b, c)
 
@@ -44,8 +44,8 @@ def test_walk_breadth_first(dag):
 
 def test_walk_bad_order_raises(dag):
     a = dag.layer(name="a")
-    b = a.child(name="b")
-    c = a.child(name="c")
+    b = a.child_layer(name="b")
+    c = a.child_layer(name="c")
     d = dag.layer(name="d")
     d.add_parents(b, c)
 

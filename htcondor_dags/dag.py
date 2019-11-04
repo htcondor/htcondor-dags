@@ -540,14 +540,14 @@ class BaseNode(abc.ABC):
             return NotImplemented
         return self.name < other.name
 
-    def child(self, type: Optional[EdgeType] = None, **kwargs) -> "NodeLayer":
+    def child_layer(self, type: Optional[EdgeType] = None, **kwargs) -> "NodeLayer":
         node = self._dag.layer(**kwargs)
 
         self._dag._edges.add(self, node, type=type)
 
         return node
 
-    def parent(self, type: Optional[EdgeType] = None, **kwargs) -> "NodeLayer":
+    def parent_layer(self, type: Optional[EdgeType] = None, **kwargs) -> "NodeLayer":
         node = self._dag.layer(**kwargs)
 
         self._dag._edges.add(node, self, type=type)
@@ -672,14 +672,14 @@ class Nodes:
         return next(iter(self.nodes))
 
     def child(self, type: Optional[EdgeType] = None, **kwargs) -> NodeLayer:
-        node = self._some_element().child(**kwargs)
+        node = self._some_element().child_layer(**kwargs)
 
         node.add_parents(self, type=type)
 
         return node
 
     def parent(self, type: Optional[EdgeType] = None, **kwargs) -> NodeLayer:
-        node = self._some_element().parent(**kwargs)
+        node = self._some_element().parent_layer(**kwargs)
 
         node.add_children(self, type=type)
 

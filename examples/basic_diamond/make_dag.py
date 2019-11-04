@@ -38,7 +38,7 @@ split_words = diamond.layer(
 # to vars.
 # Because NUM_CHUNKS is 5, this will create 5 DAGMan nodes, one to process
 # each chunk created by the previous layer.
-count_words = split_words.child(
+count_words = split_words.child_layer(
     name="count_words",
     submit_description=htcondor.Submit(
         {
@@ -57,7 +57,7 @@ count_words = split_words.child(
 # of the previous step.
 # It's input files are all of the output files from the previous step, which
 # is easy in this case because we know the naming scheme.
-combine_counts = count_words.child(
+combine_counts = count_words.child_layer(
     name="combine_counts",
     submit_description=htcondor.Submit(
         {
