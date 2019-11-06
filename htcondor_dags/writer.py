@@ -17,10 +17,10 @@ import logging
 from typing import Optional, List, Dict, Iterator
 
 import itertools
-import collections
 from pathlib import Path
 
-from . import dag, exceptions
+from . import dag, node, edges, exceptions
+from .walk_order import WalkOrder
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -40,14 +40,15 @@ class DAGWriter:
 
         self.dag_file_name = dag_file_name or DEFAULT_DAG_FILE_NAME
 
-        self.join_counter = itertools.count()
-        self.has_written_noop_file = False
+        self.join_factory = edges.JoinFactory()
 
     def write(self):
         self.path.mkdir(parents=True, exist_ok=True)
 
         self.write_dag_file()
         self.write_submit_files_for_layers()
+        if len(self.join_factory.joins) > 0:
+            self.write_noop_submit_file()
 
         return self.path / self.dag_file_name
 
@@ -57,7 +58,7 @@ class DAGWriter:
                 f.write(line + "\n")
 
     def write_submit_files_for_layers(self):
-        for layer in (n for n in self.dag.nodes if isinstance(n, dag.NodeLayer)):
+        for layer in (n for n in self.dag.nodes if isinstance(n, node.NodeLayer)):
             text = str(layer.submit_description) + "\nqueue"
             (self.path / f"{layer.name}.sub").write_text(text)
 
@@ -67,9 +68,7 @@ class DAGWriter:
         This is not done by default; it is only done if we actually need a
         join node.
         """
-        if not self.has_written_noop_file:
-            (self.path / NOOP_SUBMIT_FILE_NAME).touch(exist_ok=True)
-            self.has_written_noop_file = True
+        (self.path / NOOP_SUBMIT_FILE_NAME).touch(exist_ok=True)
 
     def yield_dag_file_lines(self) -> Iterator[str]:
         yield "# BEGIN META"
@@ -78,16 +77,21 @@ class DAGWriter:
         yield "# END META"
 
         yield "# BEGIN NODES AND EDGES"
-        for node in self.dag.walk(order=dag.WalkOrder.BREADTH_FIRST):
+        for node in self.dag.walk(order=WalkOrder.BREADTH_FIRST):
             yield from itertools.chain(
                 self.yield_node_lines(node), self.yield_edge_lines(node)
             )
+        yield from self.yield_join_node_lines()
         yield "# END NODES AND EDGES"
 
         if self.dag._final_node is not None:
             yield "# FINAL NODE"
             yield from self.yield_node_lines(self.dag._final_node)
             yield "# END FINAL NODE"
+
+    def yield_join_node_lines(self):
+        for join in self.join_factory.joins:
+            yield f"JOB {self.join_node_name(join)} {NOOP_SUBMIT_FILE_NAME} NOOP"
 
     def yield_dag_meta_lines(self):
         if len(self.dag.dagman_config) > 0:
@@ -128,19 +132,19 @@ class DAGWriter:
         contents = "\n".join(f"{k} = {v}" for k, v in self.dag.dagman_config.items())
         (self.path / CONFIG_FILE_NAME).write_text(contents)
 
-    def yield_node_lines(self, node: "dag.BaseNode") -> Iterator[str]:
-        if isinstance(node, dag.NodeLayer):
-            yield from self.yield_layer_lines(node)
-        elif isinstance(node, dag.SubDAG):
-            yield from self.yield_subdag_lines(node)
-        elif isinstance(node, dag.FinalNode):
-            yield from self.yield_final_node_lines(node)
+    def yield_node_lines(self, node_: node.BaseNode) -> Iterator[str]:
+        if isinstance(node_, node.NodeLayer):
+            yield from self.yield_layer_lines(node_)
+        elif isinstance(node_, node.SubDAG):
+            yield from self.yield_subdag_lines(node_)
+        elif isinstance(node_, node.FinalNode):
+            yield from self.yield_final_node_lines(node_)
         else:
             raise TypeError(
-                f"unrecongnized node type ({node.__class__}) for node {node}"
+                f"unrecognized node type ({node_.__class__}) for node {node_}"
             )
 
-    def yield_layer_lines(self, layer: "dag.NodeLayer") -> Iterator[str]:
+    def yield_layer_lines(self, layer: node.NodeLayer) -> Iterator[str]:
         node_meta_parts = self.get_node_meta_parts(layer)
 
         # write out each low-level dagman node in the layer
@@ -158,28 +162,28 @@ class DAGWriter:
 
             yield from self.yield_node_meta_lines(layer, name)
 
-    def yield_subdag_lines(self, subdag: "dag.SubDAG") -> Iterator[str]:
+    def yield_subdag_lines(self, subdag: node.SubDAG) -> Iterator[str]:
         parts = [f"SUBDAG EXTERNAL {subdag.name} {subdag.dag_file}"]
         parts += self.get_node_meta_parts(subdag)
         yield " ".join(parts)
 
         yield from self.yield_node_meta_lines(subdag, subdag.name)
 
-    def yield_final_node_lines(self, node: "dag.FinalNode") -> Iterator[str]:
-        yield f"FINAL {node.name} {node.name}.sub"
-        yield from self.yield_node_meta_lines(node, node.name)
+    def yield_final_node_lines(self, n: node.FinalNode) -> Iterator[str]:
+        yield f"FINAL {n.name} {n.name}.sub"
+        yield from self.yield_node_meta_lines(n, n.name)
 
-    def get_node_meta_parts(self, node: "dag.BaseNode") -> List[str]:
+    def get_node_meta_parts(self, n: node.BaseNode) -> List[str]:
         parts = []
-        if node.dir is not None:
-            parts.extend(("DIR", str(node.dir)))
-        if node.noop:
+        if n.dir is not None:
+            parts.extend(("DIR", str(n.dir)))
+        if n.noop:
             parts.append("NOOP")
-        if node.done:
+        if n.done:
             parts.append("DONE")
         return parts
 
-    def yield_node_meta_lines(self, node: "dag.BaseNode", name: str) -> Iterator[str]:
+    def yield_node_meta_lines(self, node: node.BaseNode, name: str) -> Iterator[str]:
         if node.retries is not None:
             parts = [f"RETRY {name} {node.retries}"]
             if node.retry_unless_exit is not None:
@@ -207,7 +211,7 @@ class DAGWriter:
             yield " ".join(parts)
 
     def yield_script_line(
-        self, name: str, script: "dag.Script", which: str
+        self, name: str, script: node.Script, which: str
     ) -> Iterator[str]:
         parts = ["SCRIPT"]
 
@@ -218,66 +222,47 @@ class DAGWriter:
 
         yield " ".join(str(p) for p in parts)
 
-    def get_node_name(self, node: "dag.BaseNode", idx: int) -> str:
-        if isinstance(node, dag.SubDAG):
-            return node.name
-        elif isinstance(node, dag.NodeLayer) and len(node.vars) == 1:
-            return node.name
-        elif isinstance(node, dag.NodeLayer):
-            return f"{node.name}{SEPARATOR}{node.postfix_format.format(idx)}"
+    def get_node_name(self, n: node.BaseNode, idx: int) -> str:
+        if isinstance(n, node.SubDAG):
+            return n.name
+        elif isinstance(n, node.NodeLayer) and len(n.vars) == 1:
+            return n.name
+        elif isinstance(n, node.NodeLayer):
+            return f"{n.name}{SEPARATOR}{n.postfix_format.format(idx)}"
         else:
             raise Exception(
-                f"Was not able to generate a node name for node {node}, index {idx}"
+                f"Was not able to generate a node name for node {n}, index {idx}"
             )
 
-    def get_indexes_to_node_names(self, node) -> Dict[int, str]:
-        if isinstance(node, dag.SubDAG):
-            return {0: node.name}
-        elif isinstance(node, dag.NodeLayer):
-            return {idx: self.get_node_name(node, idx) for idx in range(len(node.vars))}
+    def get_indexes_to_node_names(self, n: node.BaseNode) -> Dict[int, str]:
+        if isinstance(n, node.SubDAG):
+            return {0: n.name}
+        elif isinstance(n, node.NodeLayer):
+            return {idx: self.get_node_name(n, idx) for idx in range(len(n.vars))}
         else:
             raise TypeError(
-                f"Was not able to generate node names for node {node} because it was not a recognized node type"
+                f"Was not able to generate node names for node {n} because it was not a recognized node type"
             )
 
-    def yield_edge_lines(self, node: "dag.BaseNode") -> Iterator[str]:
-        parents = self.get_indexes_to_node_names(node)
-        for child in node.children:
-            children = self.get_indexes_to_node_names(child)
+    def join_node_name(self, join):
+        return f"__JOIN__{SEPARATOR}{join.id}"
 
-            edge_type = self.dag._edges.get(node, child)
-            if isinstance(edge_type, dag.ManyToMany):
-                if len(parents) == 1 or len(children) == 1:
-                    yield f"PARENT {' '.join(parents.values())} CHILD {' '.join(children.values())}"
-                else:
-                    self.write_noop_submit_file()
-                    join_name = f"__JOIN__{SEPARATOR}{next(self.join_counter)}"
-                    yield f"JOB {join_name} {NOOP_SUBMIT_FILE_NAME} NOOP"
-                    yield f"PARENT {' '.join(parents.values())} CHILD {join_name}"
-                    yield f"PARENT {join_name} CHILD {' '.join(children.values())}"
-            elif isinstance(edge_type, dag.OneToOne):
-                if len(parents) != len(children):
-                    raise exceptions.OneToOneEdgeNeedsSameNumberOfVars(
-                        f"parent layer {node} has {len(parents)} nodes, but child layer {child} has {len(children)} nodes"
-                    )
-                for (parent, child) in zip(parents.values(), children.values()):
-                    yield f"PARENT {parent} CHILD {child}"
-            else:
-                raise NotImplementedError("No support for generic Edges yet!")
-                parent_to_children = collections.defaultdict(set)
-                for parent_idx in parents:
-                    for child_idx in children:
-                        if edge_type.is_edge(parent_idx, child_idx):
-                            parent_to_children[parent_idx].add(child_idx)
+    def yield_edge_lines(self, parent_layer: node.BaseNode) -> Iterator[str]:
+        parent_layer_nodes = self.get_indexes_to_node_names(parent_layer)
+        for child_layer in parent_layer.children:
+            child_layer_nodes = self.get_indexes_to_node_names(child_layer)
 
-                parent_to_children = {
-                    k: tuple(sorted(v)) for k, v in parent_to_children.items()
-                }
+            edge = self.dag._edges.get(parent_layer, child_layer)
 
-                children_to_parents = collections.defaultdict(set)
-                for parent, children in parent_to_children.items():
-                    children_to_parents[children].add(parent)
-
-                edges = {tuple(sorted(v)): k for k, v in children_to_parents}
-                for parent_idxs, child_idxs in edges.items():
-                    raise Exception
+            for p, c in edge.get_edges(parent_layer, child_layer, self.join_factory):
+                parent_node_names = (
+                    (parent_layer_nodes[_] for _ in p)
+                    if not isinstance(p, edges.Join)
+                    else (self.join_node_name(p),)
+                )
+                child_node_names = (
+                    (child_layer_nodes[_] for _ in c)
+                    if not isinstance(c, edges.Join)
+                    else (self.join_node_name(c),)
+                )
+                yield f"PARENT {' '.join(parent_node_names)} CHILD {' '.join(child_node_names)}"

@@ -13,18 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging as _logging
 
-# SET UP NULL LOG HANDLER
-_logger = _logging.getLogger(__name__)
-_logger.setLevel(_logging.DEBUG)
-_logger.addHandler(_logging.NullHandler())
+import enum
 
-from .dag import DAG, DotConfig, NodeStatusFile
-from .node import NodeLayer, SubDAG, Script, DAGAbortCondition, FinalNode, Nodes
-from .walk_order import WalkOrder
-from .edges import BaseEdge, ManyToMany, OneToOne
-from .writer import DEFAULT_DAG_FILE_NAME, CONFIG_FILE_NAME, SEPARATOR
-from . import exceptions
 
-from .version import __version__, version_info, version
+class WalkOrder(enum.Enum):
+    DEPTH_FIRST = "DEPTH"
+    BREADTH_FIRST = "BREADTH"

@@ -14,10 +14,20 @@
 # limitations under the License.
 
 import logging
-from typing import Union, Iterable, Any, Callable, Dict, Mapping
+from typing import Union, Iterable, Any, Callable, Dict, Mapping, Iterator, TypeVar
+
+import itertools
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+
+T = TypeVar("T")
+
+
+def flatten(nested_iterable: Iterator[Iterator[T]]) -> Iterator[T]:
+    """Flatt"""
+    yield from itertools.chain.from_iterable(nested_iterable)
 
 
 def make_repr(obj, attrs):

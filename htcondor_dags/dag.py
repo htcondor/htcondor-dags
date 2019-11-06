@@ -13,32 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import (
-    Optional,
-    Dict,
-    Iterable,
-    Union,
-    List,
-    Any,
-    Iterator,
-    Callable,
-    Tuple,
-    TypeVar,
-)
+from typing import Optional, Dict, Union, Any, Iterator, Callable, Tuple
 import logging
 
 import collections
-import itertools
 import functools
-import enum
 from pathlib import Path
 import collections.abc
 import fnmatch
-import abc
 
-import htcondor
-
-from . import writer, utils, exceptions
+from . import node, edges, writer, utils, exceptions
+from .walk_order import WalkOrder
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -69,11 +54,6 @@ class NodeStatusFile:
 
     def __repr__(self):
         return utils.make_repr(self, ("path", "update_time", "always_update"))
-
-
-class WalkOrder(enum.Enum):
-    DEPTH_FIRST = "DEPTH"
-    BREADTH_FIRST = "BREADTH"
 
 
 def _check_node_name_uniqueness(func):
@@ -136,7 +116,7 @@ class DAG:
         self.dot_config = dot_config
         self.node_status_file = node_status_file
 
-    def walk(self, order: WalkOrder = WalkOrder.DEPTH_FIRST) -> Iterator["BaseNode"]:
+    def walk(self, order: WalkOrder = WalkOrder.DEPTH_FIRST) -> Iterator[node.BaseNode]:
         """
         Iterate over all of the nodes in the DAG, starting from the roots
         (i.e., nodes with no parents), in some sensible order.
@@ -154,8 +134,8 @@ class DAG:
         )
 
     def walk_ancestors(
-        self, node: "BaseNode", order: WalkOrder = WalkOrder.DEPTH_FIRST
-    ) -> Iterator["BaseNode"]:
+        self, node: node.BaseNode, order: WalkOrder = WalkOrder.DEPTH_FIRST
+    ) -> Iterator[node.BaseNode]:
         """
         Iterate over all of the ancestors
         (i.e., parents, parents of parents, etc.)
@@ -179,8 +159,8 @@ class DAG:
         )
 
     def walk_descendants(
-        self, node: "BaseNode", order: WalkOrder = WalkOrder.DEPTH_FIRST
-    ) -> Iterator["BaseNode"]:
+        self, node: node.BaseNode, order: WalkOrder = WalkOrder.DEPTH_FIRST
+    ) -> Iterator[node.BaseNode]:
         """
         Iterate over all of the descendants
         (i.e., children, children of children, etc.)
@@ -225,7 +205,9 @@ class DAG:
             yield node
 
     @property
-    def edges(self) -> Iterator[Tuple[Tuple["BaseNode", "BaseNode"], "EdgeType"]]:
+    def edges(
+        self
+    ) -> Iterator[Tuple[Tuple[node.BaseNode, node.BaseNode], edges.BaseEdge]]:
         """Iterate over ((parent, child), edge_type) tuples."""
         yield from self._edges
 
@@ -233,36 +215,38 @@ class DAG:
         return node in self._nodes
 
     @_check_node_name_uniqueness
-    def layer(self, **kwargs) -> "NodeLayer":
+    def layer(self, **kwargs) -> node.NodeLayer:
         """Create a new :class:`NodeLayer` with no parents or children."""
-        node = NodeLayer(dag=self, **kwargs)
-        self._nodes.add(node)
-        return node
+        n = node.NodeLayer(dag=self, **kwargs)
+        self._nodes.add(n)
+        return n
 
     @_check_node_name_uniqueness
-    def subdag(self, **kwargs) -> "SubDAG":
+    def subdag(self, **kwargs) -> node.SubDAG:
         """Create a new :class:`SubDAG` with no parents or children."""
-        node = SubDAG(dag=self, **kwargs)
-        self._nodes.add(node)
-        return node
+        n = node.SubDAG(dag=self, **kwargs)
+        self._nodes.add(n)
+        return n
 
     @_check_node_name_uniqueness
-    def final(self, **kwargs) -> "FinalNode":
+    def final(self, **kwargs) -> node.FinalNode:
         """Create the FINAL node of the DAG."""
-        node = FinalNode(dag=self, **kwargs)
-        self._final_node = node
-        return node
+        n = node.FinalNode(dag=self, **kwargs)
+        self._final_node = n
+        return n
 
-    def select(self, selector: Callable[["BaseNode"], bool]) -> "Nodes":
+    def select(self, selector: Callable[[node.BaseNode], bool]) -> node.Nodes:
         """Return a :class:`Nodes` of the nodes in the DAG that satisfy ``selector``."""
-        return Nodes(*(node for name, node in self._nodes.items() if selector(node)))
+        return node.Nodes(
+            *(node for name, node in self._nodes.items() if selector(node))
+        )
 
-    def glob(self, pattern: str) -> "Nodes":
+    def glob(self, pattern: str) -> node.Nodes:
         """Return a :class:`Nodes` of the nodes in the DAG whose names match the glob ``pattern``."""
         return self.select(lambda node: fnmatch.fnmatchcase(node.name, pattern))
 
     @property
-    def node_to_children(self) -> Dict["BaseNode", "Nodes"]:
+    def node_to_children(self) -> Dict[node.BaseNode, node.Nodes]:
         """
         Return a dictionary that maps each node to a :class:`Nodes`
         containing its children.
@@ -272,10 +256,10 @@ class DAG:
         for parent, child in self.edges:
             d[parent].add(child)
 
-        return {k: Nodes(v) for k, v in d.items()}
+        return {k: node.Nodes(v) for k, v in d.items()}
 
     @property
-    def node_to_parents(self) -> Dict["BaseNode", "Nodes"]:
+    def node_to_parents(self) -> Dict[node.BaseNode, node.Nodes]:
         """
         Return a dictionary that maps each node to a :class:`Nodes`
         containing its parents.
@@ -285,26 +269,26 @@ class DAG:
         for parent, child in self.edges:
             d[child].add(parent)
 
-        return {k: Nodes(v) for k, v in d.items()}
+        return {k: node.Nodes(v) for k, v in d.items()}
 
     @property
-    def nodes(self) -> "Nodes":
+    def nodes(self) -> node.Nodes:
         """Iterate over all of the nodes in the DAG, in no particular order."""
-        return Nodes(self._nodes)
+        return node.Nodes(self._nodes)
 
     @property
-    def roots(self) -> "Nodes":
+    def roots(self) -> node.Nodes:
         """Return a :class:`Nodes` of the nodes in the DAG that have no parents."""
-        return Nodes(
+        return node.Nodes(
             child
             for child, parents in self.node_to_parents.items()
             if len(parents) == 0
         )
 
     @property
-    def leaves(self) -> "Nodes":
+    def leaves(self) -> node.Nodes:
         """Return a :class:`Nodes` of the nodes in the DAG that have no children."""
-        return Nodes(
+        return node.Nodes(
             parent
             for parent, children in self.node_to_children.items()
             if len(children) == 0
@@ -334,20 +318,22 @@ class DAG:
         """Return a tabular description of the DAG's structure."""
         rows = []
 
-        for node in self.walk(WalkOrder.BREADTH_FIRST):
-            if isinstance(node, NodeLayer):
-                type, name = "Layer", node.name
-                vars = len(node.vars)
-            elif isinstance(node, SubDAG):
-                type, name = "SubDag", node.name
+        for n in self.walk(WalkOrder.BREADTH_FIRST):
+            if isinstance(n, node.NodeLayer):
+                type, name = "Layer", n.name
+                vars = len(n.vars)
+            elif isinstance(n, node.SubDAG):
+                type, name = "SubDAG", n.name
                 vars = None
             else:
-                raise Exception(f"Unrecognized node type: {node}")
+                raise Exception(f"Unrecognized node type: {n}")
 
-            children = len(node.children)
+            children = len(n.children)
 
-            if len(node.parents) > 0:
-                parents = ", ".join(n.name for n in node.parents)
+            if len(n.parents) > 0:
+                parents = ", ".join(
+                    f"{p.name}[{self._edges.get(p, n)}]" for p in n.parents
+                )
             else:
                 parents = None
 
@@ -360,82 +346,6 @@ class DAG:
         )
 
 
-class DAGAbortCondition:
-    def __init__(self, node_exit_value: int, dag_return_value: Optional[int] = None):
-        self.node_exit_value = node_exit_value
-        self.dag_return_value = dag_return_value
-
-    def __repr__(self):
-        return utils.make_repr(self, ("node_exit_value", "dag_return_value"))
-
-
-class Script:
-    def __init__(
-        self,
-        executable: Union[str, Path],
-        arguments: Optional[List[str]] = None,
-        retry: bool = False,
-        retry_status: int = 1,
-        retry_delay: int = 0,
-    ):
-        """
-        Parameters
-        ----------
-        executable
-            The path to the executable to run.
-        arguments
-            The individual arguments to the executable. Keep in mind that these
-            are evaluated as soon as the :class:`Script` is created!
-        retry
-            ``True`` if the script can be retried on failure.
-        retry_status
-            If the script exits with this status, the script run will be
-            considered a failure for the purposes of retrying.
-        retry_delay
-            The number of seconds to wait after a script failure before
-            retrying.
-        """
-        self.executable = executable
-        if arguments is None:
-            arguments = []
-        self.arguments = [str(arg) for arg in arguments]
-
-        self.retry = retry
-        self.retry_status = retry_status
-        self.retry_delay = retry_delay
-
-    def __repr__(self):
-        return utils.make_repr(
-            self, ("executable", "arguments", "retry", "retry_status", "retry_delay")
-        )
-
-
-class EdgeType(abc.ABC):
-    def is_edge(self, parent_index, child_index) -> bool:
-        raise NotImplementedError
-
-
-class ManyToMany(EdgeType):
-    """
-    This edge connects two layers "densely": every node in the child layer
-    is a child of every node in the parent layer.
-    """
-
-    def is_edge(self, parent_index, child_index) -> bool:
-        return True
-
-
-class OneToOne(EdgeType):
-    """
-    This edge connects two layers "linearly": each underlying node in the child
-    layer is a child of the corresponding underlying node with the same index
-    in the parent layer.
-    """
-
-    def is_edge(self, parent_index, child_index) -> bool:
-        return parent_index == child_index
-
-
 class EdgeStore:
     """
     An EdgeStore stores edges for a DAG.
@@ -444,29 +354,38 @@ class EdgeStore:
     def __init__(self):
         self.edges = {}
 
-    def __iter__(self) -> Iterator[EdgeType]:
+    def __iter__(self) -> Iterator[edges.BaseEdge]:
         yield from self.edges
 
     def __contains__(self, item) -> bool:
         return item in self.edges
 
-    def items(self) -> Iterator[Tuple[Tuple["BaseNode", "BaseNode"], EdgeType]]:
+    def items(
+        self
+    ) -> Iterator[Tuple[Tuple[node.BaseNode, node.BaseNode], edges.BaseEdge]]:
         yield from self.edges.items()
 
-    def get(self, parent: "BaseNode", child: "BaseNode") -> Optional[EdgeType]:
+    def get(
+        self, parent: node.BaseNode, child: node.BaseNode
+    ) -> Optional[edges.BaseEdge]:
         try:
             return self.edges[(parent, child)]
         except KeyError:
             return None
 
     def add(
-        self, parent: "BaseNode", child: "BaseNode", type: Optional[EdgeType] = None
+        self,
+        parent: node.BaseNode,
+        child: node.BaseNode,
+        edge: Optional[edges.BaseEdge] = None,
     ):
-        if type is None:
-            type = ManyToMany()
-        self.edges[(parent, child)] = type
+        if edge is None:
+            edge = edges.ManyToMany()
+        self.edges[(parent, child)] = edge
 
-    def pop(self, parent: "BaseNode", child: "BaseNode") -> Optional[EdgeType]:
+    def pop(
+        self, parent: node.BaseNode, child: node.BaseNode
+    ) -> Optional[edges.BaseEdge]:
         return self.edges.pop((parent, child), None)
 
 
@@ -474,48 +393,48 @@ class NodeStore:
     """
     A NodeStore behaves roughly like a dictionary mapping node names to nodes.
     However, it does not support setting items. Instead, you can ``add`` or
-    ``remove`` nodes from the store. Nodes can be specified by name, or by the
+    ``remove`` nodes from the store. nodes.Nodes can be specified by name, or by the
     actual node instance, for flexibility.
     """
 
     def __init__(self):
         self.nodes = {}
 
-    def add(self, *nodes: "BaseNode"):
-        for node in nodes:
-            if isinstance(node, BaseNode):
-                self.nodes[node.name] = node
-            elif isinstance(node, Nodes):
-                self.add(self, node)
+    def add(self, *nodes: node.BaseNode):
+        for n in nodes:
+            if isinstance(n, node.BaseNode):
+                self.nodes[n.name] = n
+            elif isinstance(n, node.Nodes):
+                self.add(self, n)
 
-    def remove(self, *nodes: "BaseNode"):
-        for node in nodes:
-            if isinstance(node, str):
-                self.nodes.pop(node, None)
-            elif isinstance(node, BaseNode):
-                self.nodes.pop(node.name, None)
-            elif isinstance(node, Nodes):
-                self.remove(node)
+    def remove(self, *nodes: node.BaseNode):
+        for n in nodes:
+            if isinstance(n, str):
+                self.nodes.pop(n, None)
+            elif isinstance(n, node.BaseNode):
+                self.nodes.pop(n.name, None)
+            elif isinstance(n, node.Nodes):
+                self.remove(n)
 
-    def __getitem__(self, node: Union["BaseNode", str]):
-        if isinstance(node, str):
-            return self.nodes[node]
-        elif isinstance(node, BaseNode):
-            return self.nodes[node.name]
+    def __getitem__(self, n: Union[node.BaseNode, str]):
+        if isinstance(n, str):
+            return self.nodes[n]
+        elif isinstance(n, node.BaseNode):
+            return self.nodes[n.name]
         else:
             raise TypeError(f"Nodes can be retrieved by name or value")
 
-    def __iter__(self) -> Iterator["BaseNode"]:
+    def __iter__(self) -> Iterator[node.BaseNode]:
         yield from self.nodes.values()
 
-    def __contains__(self, node: Union["BaseNode", str]) -> bool:
-        if isinstance(node, BaseNode):
-            return node in self.nodes.values()
-        elif isinstance(node, str):
-            return node in self.nodes.keys()
+    def __contains__(self, n: Union[node.BaseNode, str]) -> bool:
+        if isinstance(n, node.BaseNode):
+            return n in self.nodes.values()
+        elif isinstance(n, str):
+            return n in self.nodes.keys()
         return False
 
-    def items(self) -> Iterator[Tuple[str, "BaseNode"]]:
+    def items(self) -> Iterator[Tuple[str, node.BaseNode]]:
         yield from self.nodes.items()
 
     def __repr__(self) -> str:
@@ -529,266 +448,3 @@ class NodeStore:
 
     def __eq__(self, other):
         return self.nodes == other.nodes
-
-
-T = TypeVar("T")
-
-
-def flatten(nested_iterable: Iterator[Iterator[T]]) -> Iterator[T]:
-    """Flatt"""
-    yield from itertools.chain.from_iterable(nested_iterable)
-
-
-@functools.total_ordering
-class BaseNode(abc.ABC):
-    def __init__(
-        self,
-        dag,
-        *,
-        name: str,
-        dir: Optional[Path] = None,
-        noop: bool = False,
-        done: bool = False,
-        retries: Optional[int] = None,
-        retry_unless_exit: Optional[int] = None,
-        pre: Optional[Script] = None,
-        pre_skip_exit_code=None,
-        post: Optional[Script] = None,
-        priority: int = 0,
-        category: Optional[str] = None,
-        abort: Optional[DAGAbortCondition] = None,
-    ):
-        self._dag = dag
-        self.name = name
-
-        self.dir = Path(dir) if dir is not None else None
-        self.noop = noop
-        self.done = done
-
-        self.retries = retries
-        self.retry_unless_exit = retry_unless_exit
-        self.priority = priority
-        self.category = category
-        self.abort = abort
-
-        self.pre = pre
-        self.pre_skip_exit_code = pre_skip_exit_code
-        self.post = post
-
-    def __repr__(self) -> str:
-        return utils.make_repr(self, ("name",))
-
-    def description(self) -> str:
-        data = "\n".join(f"  {k} = {v}" for k, v in self.__dict__.items())
-        return f"{self.__class__.__name__}(\n{data}\n)"
-
-    def __iter__(self) -> "BaseNode":
-        yield self
-
-    def __hash__(self):
-        return hash((self.__class__, self.name))
-
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-        return self._dag == other._dag and self.name == other.name
-
-    def __lt__(self, other):
-        if not isinstance(other, NodeLayer):
-            return NotImplemented
-        return self.name < other.name
-
-    def child_layer(self, type: Optional[EdgeType] = None, **kwargs) -> "NodeLayer":
-        node = self._dag.layer(**kwargs)
-
-        self._dag._edges.add(self, node, type=type)
-
-        return node
-
-    def parent_layer(self, type: Optional[EdgeType] = None, **kwargs) -> "NodeLayer":
-        node = self._dag.layer(**kwargs)
-
-        self._dag._edges.add(node, self, type=type)
-
-        return node
-
-    def child_subdag(self, type: Optional[EdgeType] = None, **kwargs) -> "SubDAG":
-        node = self._dag.subdag(**kwargs)
-
-        self._dag._edges.add(self, node, type=type)
-
-        return node
-
-    def parent_subdag(self, type: Optional[EdgeType] = None, **kwargs) -> "SubDAG":
-        node = self._dag.subdag(**kwargs)
-
-        self._dag._edges.add(node, self, type=type)
-
-        return node
-
-    def add_children(self, *nodes, type: Optional[EdgeType] = None) -> "BaseNode":
-        nodes = flatten(nodes)
-        for node in nodes:
-            self._dag._edges.add(self, node, type=type)
-
-        return self
-
-    def remove_children(self, *nodes) -> "BaseNode":
-        nodes = flatten(nodes)
-        for node in nodes:
-            self._dag._edges.remove(self, node)
-
-        return self
-
-    def add_parents(self, *nodes, type: Optional[EdgeType] = None) -> "BaseNode":
-        nodes = flatten(nodes)
-        for node in nodes:
-            self._dag._edges.add(node, self, type=type)
-
-        return self
-
-    def remove_parents(self, *nodes) -> "BaseNode":
-        nodes = flatten(nodes)
-        for node in nodes:
-            self._dag._edges.remove(node, self)
-
-        return self
-
-    @property
-    def parents(self) -> "Nodes":
-        return self._dag.node_to_parents[self]
-
-    @property
-    def children(self) -> "Nodes":
-        return self._dag.node_to_children[self]
-
-    def walk_ancestors(
-        self, order: WalkOrder = WalkOrder.DEPTH_FIRST
-    ) -> Iterator["BaseNode"]:
-        return self._dag.walk_ancestors(node=self, order=order)
-
-    def walk_descendants(
-        self, order: WalkOrder = WalkOrder.DEPTH_FIRST
-    ) -> Iterator["BaseNode"]:
-        return self._dag.walk_descendants(node=self, order=order)
-
-
-class NodeLayer(BaseNode):
-    def __init__(
-        self,
-        dag: DAG,
-        *,
-        postfix_format="{:d}",
-        submit_description: Optional[htcondor.Submit] = None,
-        vars: Optional[Iterable[Dict[str, str]]] = None,
-        **kwargs,
-    ):
-        super().__init__(dag, **kwargs)
-
-        self.postfix_format = postfix_format
-
-        self.submit_description = submit_description or htcondor.Submit({})
-
-        # todo: this is bad, should be an empty list
-        if vars is None:
-            vars = [{}]
-        self.vars = list(vars)
-
-
-class SubDAG(BaseNode):
-    def __init__(self, dag: DAG, *, dag_file: Path, **kwargs):
-        super().__init__(dag, **kwargs)
-
-        self.dag_file = dag_file
-
-
-class FinalNode(BaseNode):
-    def __init__(
-        self, dag: DAG, submit_description: Optional[htcondor.Submit] = None, **kwargs
-    ):
-        super().__init__(dag, **kwargs)
-
-        self.submit_description = submit_description or htcondor.Submit({})
-
-
-class Nodes:
-    def __init__(self, *nodes):
-        self.nodes = NodeStore()
-        nodes = flatten(nodes)
-        for node in nodes:
-            self.nodes.add(node)
-
-    def __eq__(self, other):
-        return self.nodes == other.nodes
-
-    def __len__(self) -> int:
-        return len(self.nodes)
-
-    def __iter__(self) -> Iterator[BaseNode]:
-        yield from self.nodes
-
-    def __contains__(self, node) -> bool:
-        return node in self.nodes
-
-    def __repr__(self) -> str:
-        return f"Nodes({', '.join(repr(n) for n in sorted(self.nodes, key = lambda n: n.name))})"
-
-    def __str__(self) -> str:
-        return f"Nodes({', '.join(str(n) for n in sorted(self.nodes, key = lambda n: n.name))})"
-
-    def _some_element(self) -> BaseNode:
-        return next(iter(self.nodes))
-
-    def child_layer(self, type: Optional[EdgeType] = None, **kwargs) -> NodeLayer:
-        node = self._some_element().child_layer(**kwargs)
-
-        node.add_parents(self, type=type)
-
-        return node
-
-    def parent_layer(self, type: Optional[EdgeType] = None, **kwargs) -> NodeLayer:
-        node = self._some_element().parent_layer(**kwargs)
-
-        node.add_children(self, type=type)
-
-        return node
-
-    def child_subdag(self, type: Optional[EdgeType] = None, **kwargs) -> SubDAG:
-        node = self._some_element().child_subdag(**kwargs)
-
-        node.add_parents(self, type=type)
-
-        return node
-
-    def parent_subdag(self, type: Optional[EdgeType] = None, **kwargs) -> SubDAG:
-        node = self._some_element().parent_subdag(**kwargs)
-
-        node.add_children(self, type=type)
-
-        return node
-
-    def add_children(self, *nodes, type: Optional[EdgeType] = None):
-        for s in self:
-            s.add_children(nodes, type=type)
-
-    def remove_children(self, *nodes):
-        for s in self:
-            s.remove_children(nodes)
-
-    def add_parents(self, *nodes, type: Optional[EdgeType] = None):
-        for s in self:
-            s.add_parents(nodes, type=type)
-
-    def remove_parents(self, *nodes):
-        for s in self:
-            s.remove_parents(nodes)
-
-    def walk_ancestors(self, order: WalkOrder = WalkOrder.DEPTH_FIRST):
-        return itertools.chain.from_iterable(
-            n.walk_ancestors(order=order) for n in self
-        )
-
-    def walk_descendants(self, order: WalkOrder = WalkOrder.DEPTH_FIRST):
-        return itertools.chain.from_iterable(
-            n.walk_descendants(order=order) for n in self
-        )
