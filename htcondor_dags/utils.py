@@ -26,8 +26,12 @@ T = TypeVar("T")
 
 
 def flatten(nested_iterable: Iterator[Iterator[T]]) -> Iterator[T]:
-    """Flatt"""
     yield from itertools.chain.from_iterable(nested_iterable)
+
+
+def grouper(iterable, n, fill=None):
+    args = [iter(iterable)] * n
+    return itertools.zip_longest(*args, fillvalue=fill)
 
 
 def make_repr(obj, attrs):

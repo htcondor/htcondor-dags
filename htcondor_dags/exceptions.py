@@ -22,6 +22,10 @@ class OneToOneEdgeNeedsSameNumberOfVars(DAGsException):
     pass
 
 
+class IncompatibleGrouper(DAGsException):
+    pass
+
+
 class DuplicateNodeName(DAGsException):
     pass
 

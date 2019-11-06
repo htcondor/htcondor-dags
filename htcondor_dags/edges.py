@@ -18,7 +18,7 @@ from typing import Tuple, Iterable, Union
 import abc
 import itertools
 
-from . import node, exceptions
+from . import node, utils, exceptions
 
 
 class Join:
@@ -66,12 +66,11 @@ class ManyToMany(BaseEdge):
         num_child_vars = len(child.vars) if isinstance(child, node.NodeLayer) else 1
 
         if num_parent_vars == 1 or num_child_vars == 1:
-            return [(tuple(range(num_parent_vars)), tuple(range(num_child_vars)))]
+            yield (tuple(range(num_parent_vars)), tuple(range(num_child_vars)))
         else:
             join = join_factory.get_join_node()
-            parent_to_join = (tuple(range(num_parent_vars)), join)
-            join_to_child = (join, tuple(range(num_child_vars)))
-            return parent_to_join, join_to_child
+            yield (tuple(range(num_parent_vars)), join)
+            yield (join, tuple(range(num_child_vars)))
 
 
 class OneToOne(BaseEdge):
@@ -84,7 +83,43 @@ class OneToOne(BaseEdge):
     def get_edges(self, parent, child, join_factory: JoinFactory):
         if len(parent.vars) != len(child.vars):
             raise exceptions.OneToOneEdgeNeedsSameNumberOfVars(
-                f"parent layer {parent} has {len(parent.vars)} nodes, but child layer {child} has {len(child.vars)} nodes"
+                f"Parent layer {parent} has {len(parent.vars)} nodes, but child layer {child} has {len(child.vars)} nodes"
             )
 
-        return (((i,), (i,)) for i in range(len(parent.vars)))
+        yield from (((i,), (i,)) for i in range(len(parent.vars)))
+
+
+class Grouper(BaseEdge):
+    def __init__(self, parent_group_size=1, child_group_size=1):
+        self.parent_group_size = parent_group_size
+        self.child_group_size = child_group_size
+
+    def get_edges(self, parent, child, join_factory: JoinFactory):
+        num_parent_vars = len(parent.vars) if isinstance(parent, node.NodeLayer) else 1
+        num_child_vars = len(child.vars) if isinstance(child, node.NodeLayer) else 1
+
+        if num_parent_vars % self.parent_group_size != 0:
+            raise exceptions.IncompatibleGrouper(
+                f"Cannot apply edge {self} to layer {parent} because number of vars ({len(parent.vars)}) is not evenly divisible by the parent group size ({self.parent_group_size})"
+            )
+        if num_child_vars % self.child_group_size != 0:
+            raise exceptions.IncompatibleGrouper(
+                f"Cannot apply edge {self} to layer {child} because number of vars ({len(child.vars)}) is not evenly divisible by the child group size ({self.child_group_size})"
+            )
+        if (num_parent_vars // self.parent_group_size) != (
+            num_child_vars // self.child_group_size
+        ):
+            raise exceptions.IncompatibleGrouper(
+                f"Cannot apply edge {self} to layers {parent} and {child} because they do not produce the same number of groups (parent groups: {len(parent.vars)} / {self.parent_group_size} = {len(parent.vars) // self.parent_group_size}, child groups: {len(child.vars)} / {self.child_group_size} = {len(child.vars) // self.child_group_size})"
+            )
+
+        for parent_group, child_group in zip(
+            utils.grouper(range(num_parent_vars), self.parent_group_size),
+            utils.grouper(range(num_child_vars), self.child_group_size),
+        ):
+            join = join_factory.get_join_node()
+            yield (parent_group, join)
+            yield (join, child_group)
+
+    def __repr__(self):
+        return utils.make_repr(self, ("parent_group_size", "child_group_size"))

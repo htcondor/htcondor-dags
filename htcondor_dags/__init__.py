@@ -23,7 +23,7 @@ _logger.addHandler(_logging.NullHandler())
 from .dag import DAG, DotConfig, NodeStatusFile
 from .node import NodeLayer, SubDAG, Script, DAGAbortCondition, FinalNode, Nodes
 from .walk_order import WalkOrder
-from .edges import BaseEdge, ManyToMany, OneToOne
+from .edges import BaseEdge, ManyToMany, OneToOne, Grouper
 from .writer import DEFAULT_DAG_FILE_NAME, CONFIG_FILE_NAME, SEPARATOR
 from . import exceptions
 

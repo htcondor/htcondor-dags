@@ -67,7 +67,8 @@ def test_two_parents_two_children_creates_join_node(dag_dir, dag):
         f"PARENT __JOIN__{dags.SEPARATOR}0 CHILD child{dags.SEPARATOR}0 child{dags.SEPARATOR}1"
         in lines
     )
-    assert any(("JOB __JOIN__" in line for line in lines))
+
+    assert "JOB __JOIN__" in dagfile_text(dag_dir)
 
 
 def test_two_parents_two_children_one_to_one(dag_dir, dag):
