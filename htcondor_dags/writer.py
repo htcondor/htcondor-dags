@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import logging
-from typing import Optional, List, Dict, Iterator
+from typing import Optional, List, Dict, Iterator, Mapping
 
 import itertools
 from pathlib import Path
@@ -145,12 +145,12 @@ class DAGWriter:
             )
 
     def yield_layer_lines(self, layer: node.NodeLayer) -> Iterator[str]:
-        node_meta_parts = self.get_node_meta_parts(layer)
-
         # write out each low-level dagman node in the layer
         for idx, vars in enumerate(layer.vars):
             name = self.get_node_name(layer, idx)
-            parts = [f"JOB {name} {layer.name}.sub"] + node_meta_parts
+            parts = [f"JOB {name} {layer.name}.sub"] + self.get_node_meta_parts(
+                layer, idx
+            )
             yield " ".join(parts)
 
             if len(vars) > 0:
@@ -173,14 +173,21 @@ class DAGWriter:
         yield f"FINAL {n.name} {n.name}.sub"
         yield from self.yield_node_meta_lines(n, n.name)
 
-    def get_node_meta_parts(self, n: node.BaseNode) -> List[str]:
+    def get_node_meta_parts(self, n: node.BaseNode, idx: int = 0) -> List[str]:
         parts = []
         if n.dir is not None:
             parts.extend(("DIR", str(n.dir)))
-        if n.noop:
+
+        if (isinstance(n.noop, bool) and n.noop) or (
+            isinstance(n.noop, Mapping) and n.noop.get(idx, False)
+        ):
             parts.append("NOOP")
-        if n.done:
+
+        if (isinstance(n.done, bool) and n.done) or (
+            isinstance(n.done, Mapping) and n.done.get(idx, False)
+        ):
             parts.append("DONE")
+
         return parts
 
     def yield_node_meta_lines(self, node: node.BaseNode, name: str) -> Iterator[str]:

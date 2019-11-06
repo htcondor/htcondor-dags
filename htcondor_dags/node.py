@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-from typing import Optional, Dict, Iterable, Union, List, Iterator
+from typing import Optional, Dict, Iterable, Union, List, Iterator, Mapping
 import logging
 
 import itertools
@@ -86,8 +86,8 @@ class BaseNode(abc.ABC):
         *,
         name: str,
         dir: Optional[Path] = None,
-        noop: bool = False,
-        done: bool = False,
+        noop: Union[bool, Mapping[int, bool]] = False,
+        done: Union[bool, Mapping[int, bool]] = False,
         retries: Optional[int] = None,
         retry_unless_exit: Optional[int] = None,
         pre: Optional[Script] = None,
