@@ -31,7 +31,7 @@ from .node import (
     Nodes,
 )
 from .walk_order import WalkOrder
-from .edges import BaseEdge, ManyToMany, OneToOne, Grouper
+from .edges import BaseEdge, ManyToMany, OneToOne, Grouper, JoinNode, JoinFactory
 from .writer import DEFAULT_DAG_FILE_NAME, CONFIG_FILE_NAME, SEPARATOR
 from . import exceptions
 

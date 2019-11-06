@@ -264,12 +264,12 @@ class DAGWriter:
             for p, c in edge.get_edges(parent_layer, child_layer, self.join_factory):
                 parent_node_names = (
                     (parent_layer_nodes[_] for _ in p)
-                    if not isinstance(p, edges.Join)
+                    if not isinstance(p, edges.JoinNode)
                     else (self.join_node_name(p),)
                 )
                 child_node_names = (
                     (child_layer_nodes[_] for _ in c)
-                    if not isinstance(c, edges.Join)
+                    if not isinstance(c, edges.JoinNode)
                     else (self.join_node_name(c),)
                 )
                 yield f"PARENT {' '.join(parent_node_names)} CHILD {' '.join(child_node_names)}"
