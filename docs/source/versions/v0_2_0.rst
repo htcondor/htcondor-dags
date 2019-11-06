@@ -1,0 +1,23 @@
+v0.2.0
+======
+
+New Features
+------------
+
+* You can now walk over all of the ancestors of a node
+  (i.e., its parents, the parents of its parents, the parents of parents of
+  its parents, etc.) using :meth:`BaseNode.walk_ancestors`,
+  and similarly for its descendants using :meth:`BaseNode.walk_descendants`.
+* Implemented a new :class:`Grouper` edge. It allows flexible "chunking" of the
+  parent and child layers. For example, every three nodes in the parent layer can
+  be connected to every two nodes in the child layer.
+* Custom edges can now be created by implementing the :class:`BaseEdge` interface.
+
+
+Bug Fixes
+---------
+
+
+Known Issues
+------------
+
