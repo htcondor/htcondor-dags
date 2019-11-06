@@ -47,10 +47,10 @@ logger.setLevel(logging.DEBUG)
 class DotConfig:
     def __init__(
         self,
-        path: utils.Openable,
+        path: Path,
         update: bool = False,
         overwrite: bool = True,
-        include_file: Optional[utils.Openable] = None,
+        include_file: Optional[Path] = None,
     ):
         self.path = Path(path)
         self.update = update
@@ -62,7 +62,7 @@ class DotConfig:
 
 
 class NodeStatusFile:
-    def __init__(self, path: utils.Openable, update_time=None, always_update=False):
+    def __init__(self, path: Path, update_time=None, always_update=False):
         self.path = Path(path)
         self.update_time = update_time
         self.always_update = always_update
@@ -101,7 +101,7 @@ class DAG:
         dagman_job_attributes: Optional[Dict[str, Any]] = None,
         max_jobs_by_category: Optional[Dict[str, int]] = None,
         dot_config: Optional[DotConfig] = None,
-        jobstate_log: Optional[utils.Openable] = None,
+        jobstate_log: Optional[Path] = None,
         node_status_file: Optional[NodeStatusFile] = None,
     ):
         """
@@ -250,9 +250,7 @@ class DAG:
             if len(children) == 0
         )
 
-    def write(
-        self, dag_dir: utils.Openable, dag_file_name: Optional[str] = None
-    ) -> Path:
+    def write(self, dag_dir: Path, dag_file_name: Optional[str] = None) -> Path:
         """
         Write out the entire DAG to the given directory.
         This includes the DAG description file itself, as well as any associated
@@ -488,7 +486,7 @@ class BaseNode(abc.ABC):
         dag,
         *,
         name: str,
-        dir: Optional[utils.Openable] = None,
+        dir: Optional[Path] = None,
         noop: bool = False,
         done: bool = False,
         retries: Optional[int] = None,

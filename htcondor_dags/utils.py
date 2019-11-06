@@ -19,8 +19,6 @@ from typing import Union, Iterable, Any, Callable, Dict, Mapping
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-Openable = Union[str, bytes, int, "os.PathLike[Any]"]
-
 
 def make_repr(obj, attrs):
     entries = ", ".join(f"{k} = {getattr(obj, k)}" for k in attrs)
