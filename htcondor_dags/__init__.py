@@ -21,7 +21,15 @@ _logger.setLevel(_logging.DEBUG)
 _logger.addHandler(_logging.NullHandler())
 
 from .dag import DAG, DotConfig, NodeStatusFile
-from .node import NodeLayer, SubDAG, Script, DAGAbortCondition, FinalNode, Nodes
+from .node import (
+    BaseNode,
+    NodeLayer,
+    SubDAG,
+    Script,
+    DAGAbortCondition,
+    FinalNode,
+    Nodes,
+)
 from .walk_order import WalkOrder
 from .edges import BaseEdge, ManyToMany, OneToOne, Grouper
 from .writer import DEFAULT_DAG_FILE_NAME, CONFIG_FILE_NAME, SEPARATOR
