@@ -19,5 +19,10 @@ import htcondor_dags as dags
 
 
 @pytest.fixture(scope="function")
-def dag():
-    return dags.DAG()
+def dag(request):
+    dag = dags.DAG()
+
+    yield dag
+
+    if request.session.testsfailed:
+        print(dag.describe())

@@ -143,7 +143,10 @@ class DAG:
 
     def walk(self, order: WalkOrder = WalkOrder.DEPTH_FIRST) -> Iterator["BaseNode"]:
         """
-        Iterate over all of the nodes in the DAG, in some sensible order.
+        Iterate over all of the nodes in the DAG, starting from the roots
+        (i.e., nodes with no parents), in some sensible order.
+
+        Sibling order is not specified.
 
         Parameters
         ----------
@@ -153,6 +156,84 @@ class DAG:
         """
         seen = set()
         stack = collections.deque(self.roots())
+
+        while len(stack) != 0:
+            if order is WalkOrder.DEPTH_FIRST:
+                node = stack.pop()
+            elif order is WalkOrder.BREADTH_FIRST:
+                node = stack.popleft()
+            else:
+                raise exceptions.UnrecognizedWalkOrder(
+                    f"Unrecognized {WalkOrder.__name__}: {order}"
+                )
+
+            if node in seen:
+                continue
+            seen.add(node)
+
+            stack.extend(node.children)
+            yield node
+
+    def walk_ancestors(
+        self, node: "BaseNode", order: WalkOrder = WalkOrder.DEPTH_FIRST
+    ) -> Iterator["BaseNode"]:
+        """
+        Iterate over all of the ancestors
+        (i.e., parents, parents of parents, etc.)
+        of some node, in some sensible order.
+
+        Sibling order is not specified.
+
+        Parameters
+        ----------
+        node
+            The node to begin walking from.
+            It will not be included in the results.
+        order
+            Walk depth-first (parents before siblings)
+            or breadth-first (siblings before parents).
+        """
+        seen = set()
+        stack = collections.deque(self.node_to_parents[node])
+
+        while len(stack) != 0:
+            if order is WalkOrder.DEPTH_FIRST:
+                node = stack.pop()
+            elif order is WalkOrder.BREADTH_FIRST:
+                node = stack.popleft()
+            else:
+                raise exceptions.UnrecognizedWalkOrder(
+                    f"Unrecognized {WalkOrder.__name__}: {order}"
+                )
+
+            if node in seen:
+                continue
+            seen.add(node)
+
+            stack.extend(node.parents)
+            yield node
+
+    def walk_descendants(
+        self, node: "BaseNode", order: WalkOrder = WalkOrder.DEPTH_FIRST
+    ) -> Iterator["BaseNode"]:
+        """
+        Iterate over all of the descendants
+        (i.e., children, children of children, etc.)
+         of some node, in some sensible order.
+
+        Sibling order is not specified.
+
+        Parameters
+        ----------
+        node
+            The node to begin walking from.
+            It will not be included in the results.
+        order
+            Walk depth-first (children before siblings)
+            or breadth-first (siblings before children).
+        """
+        seen = set()
+        stack = collections.deque(self.node_to_children[node])
 
         while len(stack) != 0:
             if order is WalkOrder.DEPTH_FIRST:
@@ -602,6 +683,16 @@ class BaseNode(abc.ABC):
     def children(self) -> "Nodes":
         return self._dag.node_to_children[self]
 
+    def walk_ancestors(
+        self, order: WalkOrder = WalkOrder.DEPTH_FIRST
+    ) -> Iterator["BaseNode"]:
+        return self._dag.walk_ancestors(node=self, order=order)
+
+    def walk_descendants(
+        self, order: WalkOrder = WalkOrder.DEPTH_FIRST
+    ) -> Iterator["BaseNode"]:
+        return self._dag.walk_descendants(node=self, order=order)
+
 
 class NodeLayer(BaseNode):
     def __init__(
@@ -669,14 +760,14 @@ class Nodes:
     def _some_element(self) -> BaseNode:
         return next(iter(self.nodes))
 
-    def child(self, type: Optional[EdgeType] = None, **kwargs) -> NodeLayer:
+    def child_layer(self, type: Optional[EdgeType] = None, **kwargs) -> NodeLayer:
         node = self._some_element().child_layer(**kwargs)
 
         node.add_parents(self, type=type)
 
         return node
 
-    def parent(self, type: Optional[EdgeType] = None, **kwargs) -> NodeLayer:
+    def parent_layer(self, type: Optional[EdgeType] = None, **kwargs) -> NodeLayer:
         node = self._some_element().parent_layer(**kwargs)
 
         node.add_children(self, type=type)
@@ -712,3 +803,13 @@ class Nodes:
     def remove_parents(self, *nodes):
         for s in self:
             s.remove_parents(nodes)
+
+    def walk_ancestors(self, order: WalkOrder = WalkOrder.DEPTH_FIRST):
+        return itertools.chain.from_iterable(
+            n.walk_ancestors(order=order) for n in self
+        )
+
+    def walk_descendants(self, order: WalkOrder = WalkOrder.DEPTH_FIRST):
+        return itertools.chain.from_iterable(
+            n.walk_descendants(order=order) for n in self
+        )

@@ -22,7 +22,7 @@ logger.setLevel(logging.DEBUG)
 
 def make_repr(obj, attrs):
     entries = ", ".join(f"{k} = {getattr(obj, k)}" for k in attrs)
-    return f"{obj.__class__.__name__}({repr(entries)})"
+    return f"{obj.__class__.__name__}({entries})"
 
 
 def table(
