@@ -136,11 +136,6 @@ class DAG:
         self.dot_config = dot_config
         self.node_status_file = node_status_file
 
-    @property
-    def nodes(self):
-        """Iterate over all of the nodes in the DAG, in no particular order."""
-        yield from self._nodes
-
     def walk(self, order: WalkOrder = WalkOrder.DEPTH_FIRST) -> Iterator["BaseNode"]:
         """
         Iterate over all of the nodes in the DAG, starting from the roots
@@ -154,25 +149,9 @@ class DAG:
             Walk depth-first (children before siblings)
             or breadth-first (siblings before children).
         """
-        seen = set()
-        stack = collections.deque(self.roots())
-
-        while len(stack) != 0:
-            if order is WalkOrder.DEPTH_FIRST:
-                node = stack.pop()
-            elif order is WalkOrder.BREADTH_FIRST:
-                node = stack.popleft()
-            else:
-                raise exceptions.UnrecognizedWalkOrder(
-                    f"Unrecognized {WalkOrder.__name__}: {order}"
-                )
-
-            if node in seen:
-                continue
-            seen.add(node)
-
-            stack.extend(node.children)
-            yield node
+        yield from self._walk(
+            initial_stack=self.roots, add_to_stack=lambda n: n.children, order=order
+        )
 
     def walk_ancestors(
         self, node: "BaseNode", order: WalkOrder = WalkOrder.DEPTH_FIRST
@@ -193,25 +172,11 @@ class DAG:
             Walk depth-first (parents before siblings)
             or breadth-first (siblings before parents).
         """
-        seen = set()
-        stack = collections.deque(self.node_to_parents[node])
-
-        while len(stack) != 0:
-            if order is WalkOrder.DEPTH_FIRST:
-                node = stack.pop()
-            elif order is WalkOrder.BREADTH_FIRST:
-                node = stack.popleft()
-            else:
-                raise exceptions.UnrecognizedWalkOrder(
-                    f"Unrecognized {WalkOrder.__name__}: {order}"
-                )
-
-            if node in seen:
-                continue
-            seen.add(node)
-
-            stack.extend(node.parents)
-            yield node
+        yield from self._walk(
+            initial_stack=self.node_to_parents[node],
+            add_to_stack=lambda n: n.parents,
+            order=order,
+        )
 
     def walk_descendants(
         self, node: "BaseNode", order: WalkOrder = WalkOrder.DEPTH_FIRST
@@ -232,8 +197,15 @@ class DAG:
             Walk depth-first (children before siblings)
             or breadth-first (siblings before children).
         """
+        yield from self._walk(
+            initial_stack=self.node_to_children[node],
+            add_to_stack=lambda n: n.children,
+            order=order,
+        )
+
+    def _walk(self, initial_stack, add_to_stack, order):
         seen = set()
-        stack = collections.deque(self.node_to_children[node])
+        stack = collections.deque(initial_stack)
 
         while len(stack) != 0:
             if order is WalkOrder.DEPTH_FIRST:
@@ -249,7 +221,7 @@ class DAG:
                 continue
             seen.add(node)
 
-            stack.extend(node.children)
+            stack.extend(add_to_stack(node))
             yield node
 
     @property
@@ -315,6 +287,12 @@ class DAG:
 
         return {k: Nodes(v) for k, v in d.items()}
 
+    @property
+    def nodes(self) -> "Nodes":
+        """Iterate over all of the nodes in the DAG, in no particular order."""
+        return Nodes(self._nodes)
+
+    @property
     def roots(self) -> "Nodes":
         """Return a :class:`Nodes` of the nodes in the DAG that have no parents."""
         return Nodes(
@@ -323,6 +301,7 @@ class DAG:
             if len(parents) == 0
         )
 
+    @property
     def leaves(self) -> "Nodes":
         """Return a :class:`Nodes` of the nodes in the DAG that have no children."""
         return Nodes(

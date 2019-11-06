@@ -50,5 +50,5 @@ def test_roots_and_leaves(dag):
     middle = root.child_layer(name="middle")
     leaf = middle.child_layer(name="leaf")
 
-    assert list(dag.roots()) == [root]
-    assert list(dag.leaves()) == [leaf]
+    assert dag.roots == dags.Nodes(root)
+    assert dag.leaves == dags.Nodes(leaf)
