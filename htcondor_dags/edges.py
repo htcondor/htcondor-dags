@@ -111,6 +111,8 @@ class ManyToMany(BaseEdge):
         num_child_vars = len(child.vars) if isinstance(child, node.NodeLayer) else 1
 
         if num_parent_vars == 1 or num_child_vars == 1:
+            # the weird pattern here is just to symmetrize the result, so that
+            # we don't care which number of vars was 1
             yield (tuple(range(num_parent_vars)), tuple(range(num_child_vars)))
         else:
             join = join_factory.get_join_node()
@@ -147,37 +149,66 @@ class OneToOne(BaseEdge):
 
 
 class Grouper(BaseEdge):
-    def __init__(self, parent_group_size=1, child_group_size=1):
-        self.parent_group_size = parent_group_size
-        self.child_group_size = child_group_size
+    """
+    This edge connects two layers in "chunks". The nodes in each layer are
+    divided into chunks based on their respective chunk sizes (given in the
+    constructor). Chunks are then connected like a :class:`OneToOne` edge.
 
-    def get_edges(self, parent, child, join_factory: JoinFactory):
+    The number of chunks in each layer must be the same, and each layer must be
+    evenly-divided into chunks.
+
+    When both chunk sizes are ``1`` this is identical to a :class:`OneToOne`
+    edge, and you should use that edge instead because it produces a more
+    compact representation.
+    """
+
+    def __init__(self, parent_chunk_size: int = 1, child_chunk_size: int = 1):
+        """
+        Parameters
+        ----------
+        parent_chunk_size
+            The number of nodes in each chunk in the parent layer.
+        child_chunk_size
+            The number of nodes in each chunk in the child layer.
+        """
+        self.parent_chunk_size = parent_chunk_size
+        self.child_chunk_size = child_chunk_size
+
+    def get_edges(
+        self, parent: "node.BaseNode", child: "node.BaseNode", join_factory: JoinFactory
+    ) -> Iterable[
+        Union[
+            Tuple[Tuple[int], Tuple[int]],
+            Tuple[Tuple[int], JoinNode],
+            Tuple[JoinNode, Tuple[int]],
+        ]
+    ]:
         # TODO: this implicitly assumes that anything that isn't a NodeLayer must be a SubDAG
         num_parent_vars = len(parent.vars) if isinstance(parent, node.NodeLayer) else 1
         num_child_vars = len(child.vars) if isinstance(child, node.NodeLayer) else 1
 
-        if num_parent_vars % self.parent_group_size != 0:
+        if num_parent_vars % self.parent_chunk_size != 0:
             raise exceptions.IncompatibleGrouper(
-                f"Cannot apply edge {self} to parent layer {parent} because number of vars ({len(parent.vars)}) is not evenly divisible by the parent group size ({self.parent_group_size})"
+                f"Cannot apply edge {self} to parent layer {parent} because number of vars ({len(parent.vars)}) is not evenly divisible by the parent chunk size ({self.parent_chunk_size})"
             )
-        if num_child_vars % self.child_group_size != 0:
+        if num_child_vars % self.child_chunk_size != 0:
             raise exceptions.IncompatibleGrouper(
-                f"Cannot apply edge {self} to child layer {child} because number of vars ({len(child.vars)}) is not evenly divisible by the child group size ({self.child_group_size})"
+                f"Cannot apply edge {self} to child layer {child} because number of vars ({len(child.vars)}) is not evenly divisible by the child chunk size ({self.child_chunk_size})"
             )
-        if (num_parent_vars // self.parent_group_size) != (
-            num_child_vars // self.child_group_size
+        if (num_parent_vars // self.parent_chunk_size) != (
+            num_child_vars // self.child_chunk_size
         ):
             raise exceptions.IncompatibleGrouper(
-                f"Cannot apply edge {self} to layers {parent} and {child} because they do not produce the same number of groups (parent groups: {len(parent.vars)} / {self.parent_group_size} = {len(parent.vars) // self.parent_group_size}, child groups: {len(child.vars)} / {self.child_group_size} = {len(child.vars) // self.child_group_size})"
+                f"Cannot apply edge {self} to layers {parent} and {child} because they do not produce the same number of chunk (parent chunk: {len(parent.vars)} / {self.parent_chunk_size} = {len(parent.vars) // self.parent_chunk_size}, child chunk: {len(child.vars)} / {self.child_chunk_size} = {len(child.vars) // self.child_chunk_size})"
             )
 
         for parent_group, child_group in zip(
-            utils.grouper(range(num_parent_vars), self.parent_group_size),
-            utils.grouper(range(num_child_vars), self.child_group_size),
+            utils.grouper(range(num_parent_vars), self.parent_chunk_size),
+            utils.grouper(range(num_child_vars), self.child_chunk_size),
         ):
             join = join_factory.get_join_node()
             yield (parent_group, join)
             yield (join, child_group)
 
     def __repr__(self):
-        return utils.make_repr(self, ("parent_group_size", "child_group_size"))
+        return utils.make_repr(self, ("parent_chunk_size", "child_chunk_size"))
