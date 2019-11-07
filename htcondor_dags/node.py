@@ -224,7 +224,7 @@ class NodeLayer(BaseNode):
         dag: "dag.DAG",
         *,
         postfix_format="{:d}",
-        submit_description: Optional[htcondor.Submit] = None,
+        submit_description: Union[Optional[htcondor.Submit], Path] = None,
         vars: Optional[Iterable[Dict[str, str]]] = None,
         **kwargs,
     ):
@@ -251,7 +251,7 @@ class FinalNode(BaseNode):
     def __init__(
         self,
         dag: "dag.DAG",
-        submit_description: Optional[htcondor.Submit] = None,
+        submit_description: Union[Optional[htcondor.Submit], Path] = None,
         **kwargs,
     ):
         super().__init__(dag, **kwargs)

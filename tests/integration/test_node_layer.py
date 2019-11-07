@@ -15,6 +15,8 @@
 
 import pytest
 
+from pathlib import Path
+
 import htcondor_dags as dags
 from .conftest import dagfile_lines, dagfile_text
 
@@ -137,3 +139,11 @@ def test_layer_abort_with_meta(dag_dir, dag):
     dag.write(dag_dir)
 
     assert "ABORT-DAG-ON foobar 3 RETURN 10" in dagfile_lines(dag_dir)
+
+
+def test_submit_description_from_file(dag_dir, dag):
+    dag.layer(name="foobar", submit_description=Path("here.sub"))
+
+    dag.write(dag_dir)
+
+    assert "JOB foobar here.sub" in dagfile_text(dag_dir)

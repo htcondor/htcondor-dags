@@ -19,6 +19,8 @@ from typing import Optional, List, Dict, Iterator, Mapping
 import itertools
 from pathlib import Path
 
+import htcondor
+
 from . import dag, node, edges, exceptions
 from .walk_order import WalkOrder
 
@@ -58,7 +60,12 @@ class DAGWriter:
                 f.write(line + "\n")
 
     def write_submit_files_for_layers(self):
-        for layer in (n for n in self.dag.nodes if isinstance(n, node.NodeLayer)):
+        for layer in (
+            n
+            for n in self.dag.nodes
+            if isinstance(n, node.NodeLayer)
+            and isinstance(n.submit_description, htcondor.Submit)
+        ):
             text = str(layer.submit_description) + "\nqueue"
             (self.path / f"{layer.name}.sub").write_text(text)
 
@@ -148,9 +155,12 @@ class DAGWriter:
         # write out each low-level dagman node in the layer
         for idx, vars in enumerate(layer.vars):
             name = self.get_node_name(layer, idx)
-            parts = [f"JOB {name} {layer.name}.sub"] + self.get_node_meta_parts(
-                layer, idx
+            sub_file = (
+                f"{layer.name}.sub"
+                if isinstance(layer.submit_description, htcondor.Submit)
+                else layer.submit_description.absolute().as_posix()
             )
+            parts = [f"JOB {name} {sub_file}"] + self.get_node_meta_parts(layer, idx)
             yield " ".join(parts)
 
             if len(vars) > 0:
