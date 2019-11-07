@@ -212,3 +212,50 @@ class Grouper(BaseEdge):
 
     def __repr__(self):
         return utils.make_repr(self, ("parent_chunk_size", "child_chunk_size"))
+
+
+class Slicer(BaseEdge):
+    """
+    This edge connects individual nodes in the layers, selected by slices.
+    Each node from the parent layer that is in the parent slice is joined,
+    one-to-one, with the matching node from the child layer that is in the child
+    slice.
+    """
+
+    def __init__(
+        self, parent_slice: slice = slice(None), child_slice: slice = slice(None)
+    ):
+        self.parent_slice = parent_slice
+        self.child_slice = child_slice
+
+    def get_edges(
+        self, parent: "node.BaseNode", child: "node.BaseNode", join_factory: JoinFactory
+    ) -> Iterable[
+        Union[
+            Tuple[Tuple[int], Tuple[int]],
+            Tuple[Tuple[int], JoinNode],
+            Tuple[JoinNode, Tuple[int]],
+        ]
+    ]:
+        # TODO: this implicitly assumes that anything that isn't a NodeLayer must be a SubDAG
+        num_parent_vars = len(parent.vars) if isinstance(parent, node.NodeLayer) else 1
+        num_child_vars = len(child.vars) if isinstance(child, node.NodeLayer) else 1
+
+        for parent_index, child_index in zip(
+            itertools.islice(
+                range(num_parent_vars),
+                self.parent_slice.start,
+                self.parent_slice.stop,
+                self.parent_slice.step,
+            ),
+            itertools.islice(
+                range(num_child_vars),
+                self.child_slice.start,
+                self.child_slice.stop,
+                self.child_slice.step,
+            ),
+        ):
+            yield ((parent_index,), (child_index,))
+
+    def __repr__(self):
+        return utils.make_repr(self, ("parent_slice", "child_slice"))
