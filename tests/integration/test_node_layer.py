@@ -142,8 +142,9 @@ def test_layer_abort_with_meta(dag_dir, dag):
 
 
 def test_submit_description_from_file(dag_dir, dag):
-    dag.layer(name="foobar", submit_description=Path("here.sub"))
+    p = Path("here.sub")
+    dag.layer(name="foobar", submit_description=p)
 
     dag.write(dag_dir)
 
-    assert "JOB foobar here.sub" in dagfile_text(dag_dir)
+    assert f"JOB foobar {p.absolute().as_posix()}" in dagfile_text(dag_dir)
