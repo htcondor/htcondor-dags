@@ -31,17 +31,20 @@ class NodeNameFormatter(abc.ABC):
 
 
 class SimpleFormatter(NodeNameFormatter):
-    def __init__(self, separator=DEFAULT_SEPARATOR, index_format="{:d}"):
+    def __init__(
+        self, separator=DEFAULT_SEPARATOR, index_format="{:d}", offset: int = 0
+    ):
         self.separator = separator
         self.index_format = index_format
+        self.offset = offset
 
     def generate(self, layer_name: str, node_index: int) -> str:
         if self.separator in layer_name:
             raise exceptions.LayerNameContainsSeparator(
                 f"The layer name {layer_name} cannot contain the node name separator character '{self.separator}'"
             )
-        return f"{layer_name}{self.separator}{self.index_format.format(node_index)}"
+        return f"{layer_name}{self.separator}{self.index_format.format(node_index + self.offset)}"
 
     def parse(self, node_name: str) -> Tuple[str, int]:
         layer, index = node_name.split(self.separator)
-        return layer, int(index)
+        return layer, int(index) - self.offset
