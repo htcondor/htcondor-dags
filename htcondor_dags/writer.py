@@ -16,18 +16,16 @@
 import logging
 from typing import Optional, List, Dict, Iterator, Mapping
 
-import itertools
 from pathlib import Path
 
 import htcondor
 
-from . import dag, node, edges, exceptions
+from . import dag, node, edges, formatter
 from .walk_order import WalkOrder
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-SEPARATOR = ":"
 DEFAULT_DAG_FILE_NAME = "dagfile.dag"
 CONFIG_FILE_NAME = "dagman.config"
 NOOP_SUBMIT_FILE_NAME = "__JOIN__.sub"
@@ -61,8 +59,16 @@ def write_dag(
 class DAGWriter:
     """Not re-entrant!"""
 
-    def __init__(self, dag: "dag.DAG"):
+    def __init__(
+        self,
+        dag: "dag.DAG",
+        layer_node_name_formatter: Optional[formatter.LayerNodeNameFormatter] = None,
+    ):
         self.dag = dag
+
+        if layer_node_name_formatter is None:
+            layer_node_name_formatter = formatter.SimpleFormatter()
+        self.layer_node_name_formatter = layer_node_name_formatter
 
         self.join_factory = edges.JoinFactory()
 
@@ -271,10 +277,8 @@ class DAGWriter:
     def get_node_name(self, n: node.BaseNode, idx: int) -> str:
         if isinstance(n, node.SubDAG):
             return n.name
-        elif isinstance(n, node.NodeLayer) and len(n.vars) == 1:
-            return n.name
         elif isinstance(n, node.NodeLayer):
-            return f"{n.name}{SEPARATOR}{n.postfix_format.format(idx)}"
+            return self.layer_node_name_formatter.generate(n.name, idx)
         else:
             raise Exception(
                 f"Was not able to generate a node name for node {n}, index {idx}"
@@ -290,8 +294,8 @@ class DAGWriter:
                 f"Was not able to generate node names for node {n} because it was not a recognized node type"
             )
 
-    def join_node_name(self, join):
-        return f"__JOIN__{SEPARATOR}{join.id}"
+    def join_node_name(self, join: edges.JoinNode) -> str:
+        return self.layer_node_name_formatter.generate("__JOIN__", join.id)
 
     def yield_edge_lines(self, parent_layer: node.BaseNode) -> Iterator[str]:
         parent_layer_nodes = self.get_indexes_to_node_names(parent_layer)

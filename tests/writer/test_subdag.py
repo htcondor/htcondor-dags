@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .conftest import dagfile_lines, dagfile_text
+from .conftest import s, dagfile_lines, dagfile_text
 
 
 def test_subdag_name_appears(dag, writer):

@@ -15,7 +15,7 @@
 
 import pytest
 
-from .conftest import dagfile_lines
+from .conftest import s, dagfile_lines
 
 
 def test_one_parent_one_child(dag, writer):

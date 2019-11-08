@@ -16,34 +16,29 @@
 import pytest
 
 import htcondor_dags as dags
-from .conftest import dagfile_lines, dagfile_text
+
+from .conftest import s, dagfile_lines, dagfile_text
 
 
 def test_one_parent_one_child(dag, writer):
     parent = dag.layer(name="parent")
     child = parent.child_layer(name="child")
 
-    assert "PARENT parent CHILD child" in dagfile_lines(writer)
+    assert f"PARENT parent{s}0 CHILD child{s}0" in dagfile_lines(writer)
 
 
 def test_two_parents_one_child(dag, writer):
     parent = dag.layer(name="parent", vars=[{}, {}])
     child = parent.child_layer(name="child")
 
-    assert (
-        f"PARENT parent{dags.SEPARATOR}0 parent{dags.SEPARATOR}1 CHILD child"
-        in dagfile_lines(writer)
-    )
+    assert f"PARENT parent{s}0 parent{s}1 CHILD child{s}0" in dagfile_lines(writer)
 
 
 def test_one_parent_two_children(dag, writer):
     parent = dag.layer(name="parent")
     child = parent.child_layer(name="child", vars=[{}, {}])
 
-    assert (
-        f"PARENT parent CHILD child{dags.SEPARATOR}0 child{dags.SEPARATOR}1"
-        in dagfile_lines(writer)
-    )
+    assert f"PARENT parent{s}0 CHILD child{s}0 child{s}1" in dagfile_lines(writer)
 
 
 def test_two_parents_two_children_creates_join_node(dag, writer):
@@ -51,14 +46,8 @@ def test_two_parents_two_children_creates_join_node(dag, writer):
     child = parent.child_layer(name="child", vars=[{}, {}])
 
     lines = dagfile_lines(writer)
-    assert (
-        f"PARENT parent{dags.SEPARATOR}0 parent{dags.SEPARATOR}1 CHILD __JOIN__{dags.SEPARATOR}0"
-        in lines
-    )
-    assert (
-        f"PARENT __JOIN__{dags.SEPARATOR}0 CHILD child{dags.SEPARATOR}0 child{dags.SEPARATOR}1"
-        in lines
-    )
+    assert f"PARENT parent{s}0 parent{s}1 CHILD __JOIN__{s}0" in lines
+    assert f"PARENT __JOIN__{s}0 CHILD child{s}0 child{s}1" in lines
 
     assert "JOB __JOIN__" in dagfile_text(writer)
 
@@ -68,8 +57,8 @@ def test_two_parents_two_children_one_to_one(dag, writer):
     child = parent.child_layer(name="child", vars=[{}, {}], edge=dags.OneToOne())
 
     lines = dagfile_lines(writer)
-    assert f"PARENT parent{dags.SEPARATOR}0 CHILD child{dags.SEPARATOR}0" in lines
-    assert f"PARENT parent{dags.SEPARATOR}1 CHILD child{dags.SEPARATOR}1" in lines
+    assert f"PARENT parent{s}0 CHILD child{s}0" in lines
+    assert f"PARENT parent{s}1 CHILD child{s}1" in lines
 
 
 def test_two_parents_three_children_one_to_one_raises(dag, writer):

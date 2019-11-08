@@ -17,7 +17,8 @@ import pytest
 
 import htcondor_dags as dags
 
-from .conftest import dagfile_lines
+
+from .conftest import s, dagfile_lines
 
 
 def test_grouper_edge_produces_correct_dagfile_lines(dag, writer):
@@ -26,22 +27,10 @@ def test_grouper_edge_produces_correct_dagfile_lines(dag, writer):
 
     lines = dagfile_lines(writer)
 
-    assert (
-        f"PARENT parent{dags.SEPARATOR}0 parent{dags.SEPARATOR}1 parent{dags.SEPARATOR}2 CHILD __JOIN__{dags.SEPARATOR}0"
-        in lines
-    )
-    assert (
-        f"PARENT parent{dags.SEPARATOR}3 parent{dags.SEPARATOR}4 parent{dags.SEPARATOR}5 CHILD __JOIN__{dags.SEPARATOR}1"
-        in lines
-    )
-    assert (
-        f"PARENT __JOIN__{dags.SEPARATOR}0 CHILD child{dags.SEPARATOR}0 child{dags.SEPARATOR}1"
-        in lines
-    )
-    assert (
-        f"PARENT __JOIN__{dags.SEPARATOR}1 CHILD child{dags.SEPARATOR}2 child{dags.SEPARATOR}3"
-        in lines
-    )
+    assert f"PARENT parent{s}0 parent{s}1 parent{s}2 CHILD __JOIN__{s}0" in lines
+    assert f"PARENT parent{s}3 parent{s}4 parent{s}5 CHILD __JOIN__{s}1" in lines
+    assert f"PARENT __JOIN__{s}0 CHILD child{s}0 child{s}1" in lines
+    assert f"PARENT __JOIN__{s}1 CHILD child{s}2 child{s}3" in lines
 
 
 @pytest.mark.parametrize(

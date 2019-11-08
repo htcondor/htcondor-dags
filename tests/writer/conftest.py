@@ -18,6 +18,9 @@ import pytest
 import htcondor_dags as dags
 from htcondor_dags.writer import DAGWriter
 
+# just shorthand
+s = dags.DEFAULT_SEPARATOR
+
 
 @pytest.fixture(scope="function")
 def writer(dag):
@@ -34,10 +37,10 @@ def dag_dir(tmp_path):
 
 def dagfile_lines(writer):
     lines = list(writer.yield_dag_file_lines())
-    print("\n" + " DAGFILE LINES ".center(19, "-"))
+    print("\n" + " DAGFILE LINES ".center(40, "-"))
     for line in lines:
         print(line)
-    print("-" * 20)
+    print("-" * 40)
     return lines
 
 

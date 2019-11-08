@@ -16,20 +16,21 @@
 import pytest
 
 import htcondor_dags as dags
-from .conftest import dagfile_lines
+
+from .conftest import s, dagfile_lines
 
 
 def test_can_mark_part_of_layer_noop(dag, writer):
     layer = dag.layer(name="layer", vars=[{}] * 2, noop={0: True})
 
     lines = dagfile_lines(writer)
-    assert f"JOB layer{dags.SEPARATOR}0 layer.sub NOOP" in lines
-    assert f"JOB layer{dags.SEPARATOR}1 layer.sub" in lines
+    assert f"JOB layer{s}0 layer.sub NOOP" in lines
+    assert f"JOB layer{s}1 layer.sub" in lines
 
 
 def test_can_mark_part_of_layer_done(dag, writer):
     layer = dag.layer(name="layer", vars=[{}] * 2, done={0: True})
 
     lines = dagfile_lines(writer)
-    assert f"JOB layer{dags.SEPARATOR}0 layer.sub DONE" in lines
-    assert f"JOB layer{dags.SEPARATOR}1 layer.sub" in lines
+    assert f"JOB layer{s}0 layer.sub DONE" in lines
+    assert f"JOB layer{s}1 layer.sub" in lines

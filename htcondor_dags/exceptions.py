@@ -32,3 +32,7 @@ class DuplicateNodeName(DAGsException):
 
 class UnrecognizedWalkOrder(DAGsException):
     pass
+
+
+class LayerNameContainsSeparator(DAGsException):
+    pass

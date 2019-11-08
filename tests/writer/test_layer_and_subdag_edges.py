@@ -16,7 +16,8 @@
 import pytest
 
 import htcondor_dags as dags
-from .conftest import dagfile_lines
+
+from .conftest import s, dagfile_lines
 
 
 def test_one_parent_one_child(dag, writer):
@@ -24,7 +25,7 @@ def test_one_parent_one_child(dag, writer):
     child = parent.child_subdag(name="child", dag_file="foobar.dag")
 
     lines = dagfile_lines(writer)
-    assert "PARENT parent CHILD child" in lines
+    assert f"PARENT parent{s}0 CHILD child" in lines
 
 
 def test_two_parents_one_child(dag, writer):
@@ -32,9 +33,7 @@ def test_two_parents_one_child(dag, writer):
     child = parent.child_subdag(name="child", dag_file="foobar.dag")
 
     lines = dagfile_lines(writer)
-    assert (
-        f"PARENT parent{dags.SEPARATOR}0 parent{dags.SEPARATOR}1 CHILD child" in lines
-    )
+    assert f"PARENT parent{s}0 parent{s}1 CHILD child" in lines
 
 
 def test_one_parent_two_children(dag, writer):
@@ -42,4 +41,4 @@ def test_one_parent_two_children(dag, writer):
     child = parent.child_layer(name="child", vars=[{}, {}])
 
     lines = dagfile_lines(writer)
-    assert f"PARENT parent CHILD child{dags.SEPARATOR}0 child{dags.SEPARATOR}1" in lines
+    assert f"PARENT parent CHILD child{s}0 child{s}1" in lines

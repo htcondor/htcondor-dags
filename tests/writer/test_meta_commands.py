@@ -18,7 +18,7 @@ from pathlib import Path
 import htcondor_dags as dags
 from htcondor_dags.writer import DAGWriter
 
-from .conftest import dagfile_lines
+from .conftest import s, dagfile_lines
 
 
 def test_empty_dag_writes_empty_dagfile(dag, writer):

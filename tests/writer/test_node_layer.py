@@ -18,71 +18,72 @@ import pytest
 from pathlib import Path
 
 import htcondor_dags as dags
-from .conftest import dagfile_lines, dagfile_text
+
+from .conftest import s, dagfile_lines, dagfile_text
 
 
 def test_layer_name_appears(dag, writer):
     dag.layer(name="foobar")
 
-    assert "foobar" in dagfile_text(writer)
+    assert f"foobar{s}0" in dagfile_text(writer)
 
 
 def test_job_line_for_no_vars(dag, writer):
     dag.layer(name="foobar")
 
-    assert "JOB foobar foobar.sub" in dagfile_lines(writer)
+    assert f"JOB foobar{s}0 foobar.sub" in dagfile_lines(writer)
 
 
 def test_job_line_for_one_vars(dag, writer):
     dag.layer(name="foobar", vars=[{"bing": "bang"}])
 
-    assert "JOB foobar foobar.sub" in dagfile_lines(writer)
+    assert f"JOB foobar{s}0 foobar.sub" in dagfile_lines(writer)
 
 
 def test_job_lines_for_two_vars(dag, writer):
     dag.layer(name="foobar", vars=[{"bing": "bang"}, {"bing": "bong"}])
 
     lines = dagfile_lines(writer)
-    assert f"JOB foobar{dags.SEPARATOR}0 foobar.sub" in lines
-    assert f'VARS foobar{dags.SEPARATOR}0 bing="bang"' in lines
-    assert f"JOB foobar{dags.SEPARATOR}1 foobar.sub" in lines
-    assert f'VARS foobar{dags.SEPARATOR}1 bing="bong"' in lines
+    assert f"JOB foobar{s}0 foobar.sub" in lines
+    assert f'VARS foobar{s}0 bing="bang"' in lines
+    assert f"JOB foobar{s}1 foobar.sub" in lines
+    assert f'VARS foobar{s}1 bing="bong"' in lines
 
 
 def test_node_inline_meta(dag, writer):
     dag.layer(name="foobar", dir="dir", noop=True, done=True)
 
-    assert "JOB foobar foobar.sub DIR dir NOOP DONE" in dagfile_lines(writer)
+    assert f"JOB foobar{s}0 foobar.sub DIR dir NOOP DONE" in dagfile_lines(writer)
 
 
 def test_layer_retry(dag, writer):
     dag.layer(name="foobar", retries=5)
 
-    assert "RETRY foobar 5" in dagfile_lines(writer)
+    assert f"RETRY foobar{s}0 5" in dagfile_lines(writer)
 
 
 def test_layer_retry_with_unless_exit(dag, writer):
     dag.layer(name="foobar", retries=5, retry_unless_exit=2)
 
-    assert "RETRY foobar 5 UNLESS-EXIT 2" in dagfile_lines(writer)
+    assert f"RETRY foobar{s}0 5 UNLESS-EXIT 2" in dagfile_lines(writer)
 
 
 def test_layer_category(dag, writer):
     dag.layer(name="foobar", category="cat")
 
-    assert "CATEGORY foobar cat" in dagfile_lines(writer)
+    assert f"CATEGORY foobar{s}0 cat" in dagfile_lines(writer)
 
 
 def test_layer_priority(dag, writer):
     dag.layer(name="foobar", priority=3)
 
-    assert "PRIORITY foobar 3" in dagfile_lines(writer)
+    assert f"PRIORITY foobar{s}0 3" in dagfile_lines(writer)
 
 
 def test_layer_pre_skip(dag, writer):
     dag.layer(name="foobar", pre_skip_exit_code=1)
 
-    assert "PRE_SKIP foobar 1" in dagfile_lines(writer)
+    assert f"PRE_SKIP foobar{s}0 1" in dagfile_lines(writer)
 
 
 def test_layer_script_meta(dag, writer):
@@ -97,13 +98,13 @@ def test_layer_script_meta(dag, writer):
         ),
     )
 
-    assert "SCRIPT DEFER 2 3 PRE foobar /bin/sleep 5m" in dagfile_lines(writer)
+    assert f"SCRIPT DEFER 2 3 PRE foobar{s}0 /bin/sleep 5m" in dagfile_lines(writer)
 
 
 def test_layer_abort(dag, writer):
     dag.layer(name="foobar", abort=dags.DAGAbortCondition(node_exit_value=3))
 
-    assert "ABORT-DAG-ON foobar 3" in dagfile_lines(writer)
+    assert f"ABORT-DAG-ON foobar{s}0 3" in dagfile_lines(writer)
 
 
 def test_layer_abort_with_meta(dag, writer):
@@ -112,11 +113,11 @@ def test_layer_abort_with_meta(dag, writer):
         abort=dags.DAGAbortCondition(node_exit_value=3, dag_return_value=10),
     )
 
-    assert "ABORT-DAG-ON foobar 3 RETURN 10" in dagfile_lines(writer)
+    assert f"ABORT-DAG-ON foobar{s}0 3 RETURN 10" in dagfile_lines(writer)
 
 
 def test_submit_description_from_file(dag, writer):
     p = Path("here.sub")
     dag.layer(name="foobar", submit_description=p)
 
-    assert f"JOB foobar {p.absolute().as_posix()}" in dagfile_text(writer)
+    assert f"JOB foobar{s}0 {p.absolute().as_posix()}" in dagfile_text(writer)

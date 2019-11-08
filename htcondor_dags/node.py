@@ -223,14 +223,11 @@ class NodeLayer(BaseNode):
         self,
         dag: "dag.DAG",
         *,
-        postfix_format="{:d}",
         submit_description: Union[Optional[htcondor.Submit], Path] = None,
         vars: Optional[Iterable[Dict[str, str]]] = None,
         **kwargs,
     ):
         super().__init__(dag, **kwargs)
-
-        self.postfix_format = postfix_format
 
         self.submit_description = submit_description or htcondor.Submit({})
 

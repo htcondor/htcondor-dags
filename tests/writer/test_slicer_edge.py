@@ -16,7 +16,8 @@
 import pytest
 
 import htcondor_dags as dags
-from tests.writer.conftest import dagfile_lines
+
+from .conftest import s, dagfile_lines
 
 
 def test_slicer_edge_produces_correct_dagfile_lines(dag, writer):
@@ -32,5 +33,5 @@ def test_slicer_edge_produces_correct_dagfile_lines(dag, writer):
 
     lines = dagfile_lines(writer)
 
-    assert f"PARENT parent{dags.SEPARATOR}0 CHILD child{dags.SEPARATOR}1" in lines
-    assert f"PARENT parent{dags.SEPARATOR}2 CHILD child{dags.SEPARATOR}3" in lines
+    assert f"PARENT parent{s}0 CHILD child{s}1" in lines
+    assert f"PARENT parent{s}2 CHILD child{s}3" in lines

@@ -40,7 +40,8 @@ from .edges import (
     Grouper,
     Slicer,
 )
-from .writer import DEFAULT_DAG_FILE_NAME, CONFIG_FILE_NAME, SEPARATOR, write_dag
+from .writer import DEFAULT_DAG_FILE_NAME, CONFIG_FILE_NAME, write_dag
+from .formatter import DEFAULT_SEPARATOR, LayerNodeNameFormatter, SimpleFormatter
 from . import exceptions
 
 from .version import __version__, version_info, version
