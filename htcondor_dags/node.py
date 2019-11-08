@@ -472,9 +472,18 @@ class FinalNode(BaseNode):
 class Nodes:
     """
     This class represents an arbitrary collection of :class:`BaseNode`.
+    In many cases, especially when manipulating the structure of the graph,
+    it can be used as a replacement for directly iterating over
+    collections of nodes.
     """
 
-    def __init__(self, *nodes):
+    def __init__(self, *nodes: Union[BaseNode, Iterable[BaseNode]]):
+        """
+        Parameters
+        ----------
+        nodes
+            The logical nodes that will be in this :class:`Nodes`.
+        """
         self.nodes = dag.NodeStore()
         nodes = utils.flatten(nodes)
         for node in nodes:
@@ -502,6 +511,25 @@ class Nodes:
         return next(iter(self.nodes))
 
     def child_layer(self, type: Optional[edges.BaseEdge] = None, **kwargs) -> NodeLayer:
+        """
+        Create a new :class:`NodeLayer` which is a child of all of the nodes in
+        this :class:`Nodes`.
+
+        Parameters
+        ----------
+        edge
+            The type of edge to use; an instance of a concrete subclass of
+            :class:`BaseEdge`. If ``None``, a :class:`ManyToMany` edge will be
+            used.
+        kwargs
+            Additional keyword arguments are passed to the :class:`NodeLayer`
+            constructor.
+
+        Returns
+        -------
+        node_layer
+            The newly-created node layer.
+        """
         node = self._some_element().child_layer(**kwargs)
 
         node.add_parents(self, edge=type)
@@ -511,6 +539,25 @@ class Nodes:
     def parent_layer(
         self, type: Optional[edges.BaseEdge] = None, **kwargs
     ) -> NodeLayer:
+        """
+        Create a new :class:`NodeLayer` which is a parent of all of the nodes in
+        this :class:`Nodes`.
+
+        Parameters
+        ----------
+        edge
+            The type of edge to use; an instance of a concrete subclass of
+            :class:`BaseEdge`. If ``None``, a :class:`ManyToMany` edge will be
+            used.
+        kwargs
+            Additional keyword arguments are passed to the :class:`NodeLayer`
+            constructor.
+
+        Returns
+        -------
+        node_layer
+            The newly-created node layer.
+        """
         node = self._some_element().parent_layer(**kwargs)
 
         node.add_children(self, edge=type)
@@ -518,6 +565,25 @@ class Nodes:
         return node
 
     def child_subdag(self, type: Optional[edges.BaseEdge] = None, **kwargs) -> SubDAG:
+        """
+        Create a new :class:`SubDAG` which is a child of all of the nodes in
+        this :class:`Nodes`.
+
+        Parameters
+        ----------
+        edge
+            The type of edge to use; an instance of a concrete subclass of
+            :class:`BaseEdge`. If ``None``, a :class:`ManyToMany` edge will be
+            used.
+        kwargs
+            Additional keyword arguments are passed to the :class:`SubDAG`
+            constructor.
+
+        Returns
+        -------
+        subdag
+            The newly-created subDAG.
+        """
         node = self._some_element().child_subdag(**kwargs)
 
         node.add_parents(self, edge=type)
@@ -525,34 +591,123 @@ class Nodes:
         return node
 
     def parent_subdag(self, type: Optional[edges.BaseEdge] = None, **kwargs) -> SubDAG:
+        """
+        Create a new :class:`SubDAG` which is a parent of all of the nodes in
+        this :class:`Nodes`.
+
+        Parameters
+        ----------
+        edge
+            The type of edge to use; an instance of a concrete subclass of
+            :class:`BaseEdge`. If ``None``, a :class:`ManyToMany` edge will be
+            used.
+        kwargs
+            Additional keyword arguments are passed to the :class:`SubDAG`
+            constructor.
+
+        Returns
+        -------
+        subdag
+            The newly-created subDAG.
+        """
         node = self._some_element().parent_subdag(**kwargs)
 
         node.add_children(self, edge=type)
 
         return node
 
-    def add_children(self, *nodes, type: Optional[edges.BaseEdge] = None):
+    def add_children(self, *nodes, type: Optional[edges.BaseEdge] = None) -> "Nodes":
+        """
+        Makes all of the ``nodes`` children of all of the nodes
+        in this :class:`Nodes`.
+
+        Parameters
+        ----------
+        nodes
+            The nodes to make children of this :class:`Nodes`.
+        edge
+            The type of edge to use; an instance of a concrete subclass of
+            :class:`BaseEdge`. If ``None``, a :class:`ManyToMany` edge will be
+            used.
+
+        Returns
+        -------
+        self
+        """
         for s in self:
             s.add_children(nodes, edge=type)
 
-    def remove_children(self, *nodes):
+        return self
+
+    def remove_children(self, *nodes) -> "Nodes":
+        """
+        Makes sure that the ``nodes`` are **not** children of all of the nodes
+        in this :class:`Nodes`.
+
+        Parameters
+        ----------
+        nodes
+            The nodes to remove edges from.
+
+        Returns
+        -------
+        self
+        """
         for s in self:
             s.remove_children(nodes)
 
-    def add_parents(self, *nodes, type: Optional[edges.BaseEdge] = None):
+        return self
+
+    def add_parents(self, *nodes, type: Optional[edges.BaseEdge] = None) -> "Nodes":
+        """
+        Makes all of the ``nodes`` parents of all of the nodes in this
+        :class:`Nodes`.
+
+        Parameters
+        ----------
+        nodes
+            The nodes to make parents of this :class:`Nodes`.
+        edge
+            The type of edge to use; an instance of a concrete subclass of
+            :class:`BaseEdge`. If ``None``, a :class:`ManyToMany` edge will be
+            used.
+
+        Returns
+        -------
+        self
+        """
         for s in self:
             s.add_parents(nodes, edge=type)
 
-    def remove_parents(self, *nodes):
+        return self
+
+    def remove_parents(self, *nodes) -> "Nodes":
+        """
+        Makes sure that the ``nodes`` are **not** parents of any of the nodes
+        in this :class:`Nodes`.
+
+        Parameters
+        ----------
+        nodes
+            The nodes to remove edges from.
+
+        Returns
+        -------
+        self
+        """
         for s in self:
             s.remove_parents(nodes)
 
+        return self
+
     def walk_ancestors(self, order: WalkOrder = WalkOrder.DEPTH_FIRST):
+        """Walk over all of the ancestors of all of the nodes in this :class:`Nodes`, in the given order."""
         return itertools.chain.from_iterable(
             n.walk_ancestors(order=order) for n in self
         )
 
     def walk_descendants(self, order: WalkOrder = WalkOrder.DEPTH_FIRST):
+        """Walk over all of the descendants of all of the nodes in this :class:`Nodes`, in the given order."""
         return itertools.chain.from_iterable(
             n.walk_descendants(order=order) for n in self
         )

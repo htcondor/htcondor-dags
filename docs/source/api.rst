@@ -15,6 +15,7 @@ Creating DAGs
 
 .. autoclass:: WalkOrder
 
+
 Nodes and Node-likes
 ++++++++++++++++++++
 
@@ -35,12 +36,19 @@ Nodes and Node-likes
 .. autoclass:: OneToOne
 .. autoclass:: ManyToMany
 
+
 Node Configuration
 ++++++++++++++++++
 
 .. autoclass:: Script
 
 .. autoclass:: DAGAbortCondition
+
+
+Writing a DAG to Disk
++++++++++++++++++++++
+
+.. autofunction:: write_dag
 
 
 DAG Configuration
