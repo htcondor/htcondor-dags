@@ -33,8 +33,14 @@ Nodes and Node-likes
 .. autoclass:: Nodes
    :members:
 
+
+Edges
++++++
+
 .. autoclass:: OneToOne
 .. autoclass:: ManyToMany
+.. autoclass:: Grouper
+.. autoclass:: Slicer
 
 
 Node Configuration
