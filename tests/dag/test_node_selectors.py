@@ -18,30 +18,6 @@ import pytest
 import htcondor_dags as dags
 
 
-def test_walk_depth_first(dag):
-    a = dag.layer(name="a")
-    b = a.child(name="b")
-    c = a.child(name="c")
-    d = dag.layer(name="d")
-    d.add_parents(b, c)
-
-    nodes = list(dag.walk(dags.WalkOrder.DEPTH_FIRST))
-    # sibling order is not specified
-    assert nodes in ([a, b, d, c], [a, c, d, b])
-
-
-def test_walk_breadth_first(dag):
-    a = dag.layer(name="a")
-    b = a.child(name="b")
-    c = a.child(name="c")
-    d = dag.layer(name="d")
-    d.add_parents(b, c)
-
-    nodes = list(dag.walk(dags.WalkOrder.BREADTH_FIRST))
-    # sibling order is not specified
-    assert nodes in ([a, b, c, d], [a, c, b, d])
-
-
 def test_select_nodes(dag):
     a = dag.layer(name="a")
     bb = dag.layer(name="bb")
@@ -58,3 +34,19 @@ def test_glob_nodes(dag):
     dd = dag.layer(name="dd")
 
     assert dag.glob("a*") == dags.Nodes(aa, ac)
+
+
+def test_roots(dag):
+    root = dag.layer(name="root")
+    middle = root.child_layer(name="middle")
+    leaf = middle.child_layer(name="leaf")
+
+    assert dag.roots == dags.Nodes(root)
+
+
+def test_leaves(dag):
+    root = dag.layer(name="root")
+    middle = root.child_layer(name="middle")
+    leaf = middle.child_layer(name="leaf")
+
+    assert dag.leaves == dags.Nodes(leaf)

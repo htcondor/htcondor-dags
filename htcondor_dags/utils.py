@@ -13,18 +13,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Iterable, Any, Callable, Dict, Mapping, Iterator, TypeVar, Tuple
 import logging
-from typing import Union, Iterable, Any, Callable, Dict, Mapping
+
+import itertools
+import re
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-Openable = Union[str, bytes, int, "os.PathLike[Any]"]
+
+T = TypeVar("T")
+
+
+def flatten(nested_iterable: Iterator[Iterator[T]]) -> Iterator[T]:
+    yield from itertools.chain.from_iterable(nested_iterable)
+
+
+def grouper(iterable, n, fill=None):
+    args = [iter(iterable)] * n
+    return itertools.zip_longest(*args, fillvalue=fill)
 
 
 def make_repr(obj, attrs):
     entries = ", ".join(f"{k} = {getattr(obj, k)}" for k in attrs)
-    return f"{obj.__class__.__name__}({repr(entries)})"
+    return f"{obj.__class__.__name__}({entries})"
 
 
 def table(
@@ -105,3 +118,26 @@ def table(
     output = "\n".join((header, *lines))
 
     return output
+
+
+VERSION_RE = re.compile(
+    r"^(\d+) \. (\d+) (\. (\d+))? ([ab](\d+))?$", re.VERBOSE | re.ASCII
+)
+
+
+def parse_version(v: str) -> Tuple[int, int, int, str, int]:
+    match = VERSION_RE.match(v)
+    if match is None:
+        raise Exception(f"Could not determine version info from {v}")
+
+    (major, minor, micro, prerelease, prerelease_num) = match.group(1, 2, 4, 5, 6)
+
+    out = (
+        int(major),
+        int(minor),
+        int(micro or 0),
+        prerelease[0] if prerelease is not None else None,
+        int(prerelease_num) if prerelease_num is not None else None,
+    )
+
+    return out

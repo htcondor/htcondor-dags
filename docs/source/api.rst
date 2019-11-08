@@ -3,6 +3,10 @@ API Reference
 
 .. py:currentmodule:: htcondor_dags
 
+.. attention::
+    This is not documentation for DAGMan itself! If you run into DAGMan jargon
+    that isn't explained here, see `The DAGMan Manual <https://htcondor.readthedocs.io/en/latest/users-manual/dagman-applications.html>`_.
+
 Creating DAGs
 -------------
 
@@ -10,6 +14,7 @@ Creating DAGs
    :members:
 
 .. autoclass:: WalkOrder
+
 
 Nodes and Node-likes
 ++++++++++++++++++++
@@ -28,8 +33,15 @@ Nodes and Node-likes
 .. autoclass:: Nodes
    :members:
 
+
+Edges
++++++
+
 .. autoclass:: OneToOne
 .. autoclass:: ManyToMany
+.. autoclass:: Grouper
+.. autoclass:: Slicer
+
 
 Node Configuration
 ++++++++++++++++++
@@ -37,6 +49,12 @@ Node Configuration
 .. autoclass:: Script
 
 .. autoclass:: DAGAbortCondition
+
+
+Writing a DAG to Disk
++++++++++++++++++++++
+
+.. autofunction:: write_dag
 
 
 DAG Configuration
@@ -47,3 +65,9 @@ DAG Configuration
 .. autoclass:: NodeStatusFile
 
 
+Rescue DAGs
+-----------
+
+.. autofunction:: rescue
+
+.. autofunction:: find_rescue_file

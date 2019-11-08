@@ -13,21 +13,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 import htcondor_dags as dags
-from .conftest import dagfile_lines, dagfile_text
+
+from .conftest import s, dagfile_lines
 
 
-def test_subdag_name_appears(dag_dir, dag):
-    dag.subdag(name="foobar", dag_file="subdag.dag")
+def test_can_mark_part_of_layer_noop(dag, writer):
+    layer = dag.layer(name="layer", vars=[{}] * 2, noop={0: True})
 
-    dag.write(dag_dir)
+    lines = dagfile_lines(writer)
+    assert f"JOB layer{s}0 layer.sub NOOP" in lines
+    assert f"JOB layer{s}1 layer.sub" in lines
 
-    assert "foobar" in dagfile_text(dag_dir)
 
+def test_can_mark_part_of_layer_done(dag, writer):
+    layer = dag.layer(name="layer", vars=[{}] * 2, done={0: True})
 
-def test_subdag_line_appears(dag_dir, dag):
-    dag.subdag(name="foobar", dag_file="subdag.dag")
-
-    dag.write(dag_dir)
-
-    assert "SUBDAG EXTERNAL foobar subdag.dag" in dagfile_lines(dag_dir)
+    lines = dagfile_lines(writer)
+    assert f"JOB layer{s}0 layer.sub DONE" in lines
+    assert f"JOB layer{s}1 layer.sub" in lines

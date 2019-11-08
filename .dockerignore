@@ -105,6 +105,11 @@ venv.bak/
 .mypy_cache/
 
 .idea/
+.vscode/
 
 Dockerfile
 dr
+
+/examples/mandelbrot/mandelbrot-dag/
+/examples/mandelbrot/test.png
+/examples/mandelbrot/test.ppm

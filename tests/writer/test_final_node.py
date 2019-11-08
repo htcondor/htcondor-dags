@@ -13,8 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import htcondor_dags as dags
+import pytest
+
+from .conftest import dagfile_lines
 
 
-def test_version_string():
-    assert dags.__version__ in dags.version()
+def test_final_node_line(dag, writer):
+    dag.final(name="fin")
+
+    lines = dagfile_lines(writer)
+    assert "FINAL fin fin.sub" in lines

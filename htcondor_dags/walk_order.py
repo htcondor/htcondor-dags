@@ -13,15 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
 
-import htcondor_dags as dags
-from .conftest import dagfile_lines, dagfile_text
+import enum
 
 
-def test_final_node_line(dag_dir, dag):
-    dag.final(name="fin")
+class WalkOrder(enum.Enum):
+    """
+    An enumeration for keeping track of which order to walk through a graph.
+    Depth-first means that parents/children will be visited before siblings.
+    Breadth-first means that siblings will be visited before parents/children.
+    """
 
-    dag.write(dag_dir)
+    DEPTH_FIRST = "DEPTH"
+    BREADTH_FIRST = "BREADTH"
 
-    assert "FINAL fin fin.sub" in dagfile_lines(dag_dir)
+    def __repr__(self):
+        return f"{self.__class__.__name__}.{self._name_}"

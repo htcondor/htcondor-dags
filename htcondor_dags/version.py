@@ -13,9 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple
+from typing import Tuple, Optional
 
-__version__ = "0.1.1"
+from . import utils
+
+__version__ = "0.2.0"
 
 
 def version() -> str:
@@ -23,11 +25,6 @@ def version() -> str:
     return f"htcondor-dags version {__version__}"
 
 
-def _version_info(v: str) -> Tuple[int, int, int, str]:
-    """Un-format ``__version__``."""
-    return (*(int(x) for x in v[:5].split(".")), v[5:])
-
-
-def version_info() -> Tuple[int, int, int, str]:
-    """Return a tuple of version information: ``(major, minor, micro, release_level)``."""
-    return _version_info(__version__)
+def version_info() -> Tuple[int, int, int, Optional[str], Optional[int]]:
+    """Return a tuple of version information: ``(major, minor, micro, prerelease)``."""
+    return utils.parse_version(__version__)

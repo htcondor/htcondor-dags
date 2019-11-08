@@ -43,6 +43,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
+    "sphinx.ext.graphviz",
     "nbsphinx",
 ]
 
@@ -80,8 +81,8 @@ intersphinx_mapping = {
 
 autodoc_member_order = "bysource"
 autoclass_content = "both"
-autodoc_default_flags = ["undoc-members"]
-
+autodoc_default_options = {"undoc-members": True}
+add_module_names = False
 napoleon_use_rtype = False
 
 

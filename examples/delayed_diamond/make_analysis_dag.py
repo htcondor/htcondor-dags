@@ -31,7 +31,7 @@ count_words = analysis_dag.layer(
 )
 
 # This is the "combine the counts from each chunk" step.
-combine_counts = count_words.child(
+combine_counts = count_words.child_layer(
     name="combine_counts",
     submit_description=htcondor.Submit(
         {
@@ -52,5 +52,5 @@ combine_counts = count_words.child(
 # If you write it out to a different directory, you may need to be careful
 # about filepaths in your submit descriptions!
 this_dir = Path(__file__).parent
-analysis_dag.write(this_dir, dag_file_name="analysis.dag")
+dags.write_dag(analysis_dag, this_dir, dag_file_name="analysis.dag")
 print(f"Wrote DAG files to {this_dir}")

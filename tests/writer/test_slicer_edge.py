@@ -17,22 +17,21 @@ import pytest
 
 import htcondor_dags as dags
 
-
-@pytest.fixture(scope="function")
-def dag_dir(tmp_path):
-    d = tmp_path / "dag-dir"
-    d.mkdir()
-
-    return d
+from .conftest import s, dagfile_lines
 
 
-def dagfile_text(dag_dir, dag_file_name=None):
-    if dag_file_name is None:
-        dag_file_name = dags.DEFAULT_DAG_FILE_NAME
-    text = (dag_dir / dag_file_name).read_text()
-    print(text)
-    return text
+def test_slicer_edge_produces_correct_dagfile_lines(dag, writer):
+    # note that the slice stops when the child layer runs out of vars!
+    parent = dag.layer(name="parent", vars=[{}] * 6)
+    child = parent.child_layer(
+        name="child",
+        vars=[{}] * 4,
+        edge=dags.Slicer(
+            parent_slice=slice(None, None, 2), child_slice=slice(1, None, 2)
+        ),
+    )
 
+    lines = dagfile_lines(writer)
 
-def dagfile_lines(dag_dir, dag_file_name=None):
-    return dagfile_text(dag_dir, dag_file_name).splitlines()
+    assert f"PARENT parent{s}0 CHILD child{s}1" in lines
+    assert f"PARENT parent{s}2 CHILD child{s}3" in lines

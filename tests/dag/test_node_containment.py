@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import htcondor_dags as dags
-from .conftest import dagfile_lines, dagfile_text
 
 
 def test_dag_contains_child():
@@ -43,12 +42,3 @@ def test_other_does_not_contain_child_even_if_same_name():
 
     assert a_child not in b
     assert b_child not in a
-
-
-def test_roots_and_leaves(dag):
-    root = dag.layer(name="root")
-    middle = root.child(name="middle")
-    leaf = middle.child(name="leaf")
-
-    assert list(dag.roots()) == [root]
-    assert list(dag.leaves()) == [leaf]

@@ -16,13 +16,33 @@
 import pytest
 
 import htcondor_dags as dags
+from htcondor_dags.writer import DAGWriter
+
+# just shorthand
+s = dags.DEFAULT_SEPARATOR
 
 
 @pytest.fixture(scope="function")
-def dag(request):
-    dag = dags.DAG()
+def writer(dag):
+    return DAGWriter(dag)
 
-    yield dag
 
-    if request.session.testsfailed:
-        print(dag.describe())
+@pytest.fixture(scope="function")
+def dag_dir(tmp_path):
+    d = tmp_path / "dag-dir"
+    d.mkdir()
+
+    return d
+
+
+def dagfile_lines(writer):
+    lines = list(writer.yield_dag_file_lines())
+    print("\n" + " DAGFILE LINES ".center(40, "-"))
+    for line in lines:
+        print(line)
+    print("-" * 40)
+    return lines
+
+
+def dagfile_text(writer):
+    return "\n".join(dagfile_lines(writer))

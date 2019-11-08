@@ -22,9 +22,25 @@ class OneToOneEdgeNeedsSameNumberOfVars(DAGsException):
     pass
 
 
+class IncompatibleGrouper(DAGsException):
+    pass
+
+
 class DuplicateNodeName(DAGsException):
     pass
 
 
 class UnrecognizedWalkOrder(DAGsException):
+    pass
+
+
+class LayerNameContainsSeparator(DAGsException):
+    pass
+
+
+class NoRescueFileFound(DAGsException):
+    pass
+
+
+class NoninvertibleFormat(DAGsException):
     pass
