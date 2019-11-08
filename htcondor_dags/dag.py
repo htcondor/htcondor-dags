@@ -341,6 +341,8 @@ class DAG:
 class EdgeStore:
     """
     An EdgeStore stores edges for a DAG.
+
+    This object is for internal use only.
     """
 
     def __init__(self):
@@ -387,6 +389,8 @@ class NodeStore:
     However, it does not support setting items. Instead, you can ``add`` or
     ``remove`` nodes from the store. nodes.Nodes can be specified by name, or by the
     actual node instance, for flexibility.
+
+    This object is for internal use only.
     """
 
     def __init__(self):
