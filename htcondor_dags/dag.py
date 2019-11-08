@@ -22,7 +22,7 @@ from pathlib import Path
 import collections.abc
 import fnmatch
 
-from . import node, edges, writer, utils, exceptions
+from . import node, edges, utils, exceptions
 from .walk_order import WalkOrder
 
 logger = logging.getLogger(__name__)
@@ -293,26 +293,6 @@ class DAG:
             for parent, children in self.node_to_children.items()
             if len(children) == 0
         )
-
-    def write(self, dag_dir: Path, dag_file_name: Optional[str] = None) -> Path:
-        """
-        Write out the entire DAG to the given directory.
-        This includes the DAG description file itself, as well as any associated
-        submit descriptions.
-
-        Parameters
-        ----------
-        dag_dir
-            The directory to write the DAG files to.
-        dag_file_name
-            The name of the DAG description file itself.
-
-        Returns
-        -------
-        dag_dir :
-            Returns the path to the DAG directory.
-        """
-        return writer.DAGWriter(self, dag_dir, dag_file_name=dag_file_name).write()
 
     def describe(self) -> str:
         """Return a tabular description of the DAG's structure."""

@@ -23,7 +23,7 @@ def test_grouper_edge_produces_correct_dagfile_lines(dag_dir, dag):
     parent = dag.layer(name="parent", vars=[{}] * 6)
     child = parent.child_layer(name="child", vars=[{}] * 4, edge=dags.Grouper(3, 2))
 
-    dag.write(dag_dir)
+    dags.write_dag(dag, dag_dir)
 
     lines = dagfile_lines(dag_dir)
 
@@ -67,7 +67,7 @@ def test_compatible_grouper_edges(
         edge=dags.Grouper(parent_group_size, child_group_size),
     )
 
-    dag.write(dag_dir)
+    dags.write_dag(dag, dag_dir)
 
 
 @pytest.mark.parametrize(
@@ -85,4 +85,4 @@ def test_incompatible_grouper_edges(
     )
 
     with pytest.raises(dags.exceptions.IncompatibleGrouper):
-        dag.write(dag_dir)
+        dags.write_dag(dag, dag_dir)

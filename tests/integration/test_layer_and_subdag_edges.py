@@ -23,7 +23,7 @@ def test_one_parent_one_child(dag_dir, dag):
     parent = dag.layer(name="parent")
     child = parent.child_subdag(name="child", dag_file="foobar.dag")
 
-    dag.write(dag_dir)
+    dags.write_dag(dag, dag_dir)
 
     assert "PARENT parent CHILD child" in dagfile_lines(dag_dir)
 
@@ -32,7 +32,7 @@ def test_two_parents_one_child(dag_dir, dag):
     parent = dag.layer(name="parent", vars=[{}, {}])
     child = parent.child_subdag(name="child", dag_file="foobar.dag")
 
-    dag.write(dag_dir)
+    dags.write_dag(dag, dag_dir)
 
     assert (
         f"PARENT parent{dags.SEPARATOR}0 parent{dags.SEPARATOR}1 CHILD child"
@@ -44,7 +44,7 @@ def test_one_parent_two_children(dag_dir, dag):
     parent = dag.subdag(name="parent", dag_file="foobar.dag")
     child = parent.child_layer(name="child", vars=[{}, {}])
 
-    dag.write(dag_dir)
+    dags.write_dag(dag, dag_dir)
 
     assert (
         f"PARENT parent CHILD child{dags.SEPARATOR}0 child{dags.SEPARATOR}1"

@@ -52,5 +52,5 @@ combine_counts = count_words.child_layer(
 # If you write it out to a different directory, you may need to be careful
 # about filepaths in your submit descriptions!
 this_dir = Path(__file__).parent
-analysis_dag.write(this_dir, dag_file_name="analysis.dag")
+dags.write_dag(analysis_dag, this_dir, dag_file_name="analysis.dag")
 print(f"Wrote DAG files to {this_dir}")

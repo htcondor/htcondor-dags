@@ -40,7 +40,7 @@ from .edges import (
     Grouper,
     Slicer,
 )
-from .writer import DEFAULT_DAG_FILE_NAME, CONFIG_FILE_NAME, SEPARATOR
+from .writer import DEFAULT_DAG_FILE_NAME, CONFIG_FILE_NAME, SEPARATOR, write_dag
 from . import exceptions
 
 from .version import __version__, version_info, version

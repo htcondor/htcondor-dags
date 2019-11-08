@@ -78,5 +78,5 @@ combine_counts = count_words.child_layer(
 # If you write it out to a different directory, you may need to be careful
 # about filepaths in your submit descriptions!
 this_dir = Path(__file__).parent
-diamond.write(this_dir)
+dags.write_dag(diamond, this_dir)
 print(f"Wrote DAG files to {this_dir}")

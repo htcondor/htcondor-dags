@@ -29,5 +29,5 @@ analysis_subdag = split_words.child_subdag(name="analysis", dag_file="analysis.d
 # Now that we're going to have two DAG input files in this directory, we need
 # to give them unique names.
 this_dir = Path(__file__).parent
-top_layer_dag.write(this_dir, dag_file_name="top_level.dag")
+dags.write_dag(top_layer_dag, this_dir, dag_file_name="top_level.dag")
 print(f"Wrote DAG files to {this_dir}")

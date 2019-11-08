@@ -33,33 +33,64 @@ CONFIG_FILE_NAME = "dagman.config"
 NOOP_SUBMIT_FILE_NAME = "__JOIN__.sub"
 
 
+def write_dag(
+    dag: dag.DAG, dag_dir: Path, dag_file_name: Optional[str] = DEFAULT_DAG_FILE_NAME
+):
+    """
+    Write out the given DAG to the given directory.
+    This includes the DAG description file itself, as well as any associated
+    submit descriptions.
+
+    Parameters
+    ----------
+    dag
+        The DAG to write the description for.
+    dag_dir
+        The directory to write the DAG files to.
+    dag_file_name
+        The name of the DAG description file itself.
+
+    Returns
+    -------
+    dag_file_path :
+        Returns the path to the DAG description file.
+    """
+    return DAGWriter(dag).write(dag_dir, dag_file_name=dag_file_name)
+
+
 class DAGWriter:
     """Not re-entrant!"""
 
-    def __init__(self, dag: "dag.DAG", path: Path, dag_file_name: Optional[str] = None):
+    def __init__(self, dag: "dag.DAG"):
         self.dag = dag
-        self.path = Path(path).absolute()
-
-        self.dag_file_name = dag_file_name or DEFAULT_DAG_FILE_NAME
 
         self.join_factory = edges.JoinFactory()
 
-    def write(self):
-        self.path.mkdir(parents=True, exist_ok=True)
+    def write(
+        self, dag_dir: Path, dag_file_name: Optional[str] = DEFAULT_DAG_FILE_NAME
+    ):
+        dag_dir = Path(dag_dir).absolute()
+        dag_file_name = dag_file_name or DEFAULT_DAG_FILE_NAME
 
-        self.write_dag_file()
-        self.write_submit_files_for_layers()
+        dag_dir.mkdir(parents=True, exist_ok=True)
+
+        dag_file_path = dag_dir / dag_file_name
+
+        self.write_dag_file(dag_file_path)
+        self.write_submit_files_for_layers(dag_dir)
         if len(self.join_factory.joins) > 0:
-            self.write_noop_submit_file()
+            self.write_noop_submit_file(dag_dir)
+        if len(self.dag.dagman_config) > 0:
+            self.write_dagman_config_file(dag_dir)
 
-        return self.path / self.dag_file_name
+        return dag_file_path
 
-    def write_dag_file(self):
-        with (self.path / self.dag_file_name).open(mode="w") as f:
+    def write_dag_file(self, dag_file_path):
+        with dag_file_path.open(mode="w") as f:
             for line in self.yield_dag_file_lines():
                 f.write(line + "\n")
 
-    def write_submit_files_for_layers(self):
+    def write_submit_files_for_layers(self, path):
         for layer in (
             n
             for n in self.dag.nodes
@@ -67,15 +98,15 @@ class DAGWriter:
             and isinstance(n.submit_description, htcondor.Submit)
         ):
             text = str(layer.submit_description) + "\nqueue"
-            (self.path / f"{layer.name}.sub").write_text(text)
+            (path / f"{layer.name}.sub").write_text(text)
 
-    def write_noop_submit_file(self):
+    def write_noop_submit_file(self, dag_dir):
         """
         Write out the shared submit file for the NOOP join nodes.
         This is not done by default; it is only done if we actually need a
         join node.
         """
-        (self.path / NOOP_SUBMIT_FILE_NAME).touch(exist_ok=True)
+        (dag_dir / NOOP_SUBMIT_FILE_NAME).touch(exist_ok=True)
 
     def yield_dag_file_lines(self) -> Iterator[str]:
         yield "# BEGIN META"
@@ -102,7 +133,6 @@ class DAGWriter:
 
     def yield_dag_meta_lines(self):
         if len(self.dag.dagman_config) > 0:
-            self.write_dagman_config_file()
             yield f"CONFIG {CONFIG_FILE_NAME}"
 
         if self.dag.jobstate_log is not None:
@@ -135,9 +165,9 @@ class DAGWriter:
         for category, value in self.dag.max_jobs_per_category.items():
             yield f"CATEGORY {category} {value}"
 
-    def write_dagman_config_file(self):
+    def write_dagman_config_file(self, dag_dir: Path):
         contents = "\n".join(f"{k} = {v}" for k, v in self.dag.dagman_config.items())
-        (self.path / CONFIG_FILE_NAME).write_text(contents)
+        (dag_dir / CONFIG_FILE_NAME).write_text(contents)
 
     def yield_node_lines(self, node_: node.BaseNode) -> Iterator[str]:
         if isinstance(node_, node.NodeLayer):

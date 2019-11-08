@@ -30,7 +30,7 @@ def test_slicer_edge_produces_correct_dagfile_lines(dag_dir, dag):
         ),
     )
 
-    dag.write(dag_dir)
+    dags.write_dag(dag, dag_dir)
 
     lines = dagfile_lines(dag_dir)
 

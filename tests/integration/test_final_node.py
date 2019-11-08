@@ -22,6 +22,6 @@ from .conftest import dagfile_lines, dagfile_text
 def test_final_node_line(dag_dir, dag):
     dag.final(name="fin")
 
-    dag.write(dag_dir)
+    dags.write_dag(dag, dag_dir)
 
     assert "FINAL fin fin.sub" in dagfile_lines(dag_dir)

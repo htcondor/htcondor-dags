@@ -20,7 +20,7 @@ from .conftest import dagfile_lines, dagfile_text
 def test_subdag_name_appears(dag_dir, dag):
     dag.subdag(name="foobar", dag_file="subdag.dag")
 
-    dag.write(dag_dir)
+    dags.write_dag(dag, dag_dir)
 
     assert "foobar" in dagfile_text(dag_dir)
 
@@ -28,6 +28,6 @@ def test_subdag_name_appears(dag_dir, dag):
 def test_subdag_line_appears(dag_dir, dag):
     dag.subdag(name="foobar", dag_file="subdag.dag")
 
-    dag.write(dag_dir)
+    dags.write_dag(dag, dag_dir)
 
     assert "SUBDAG EXTERNAL foobar subdag.dag" in dagfile_lines(dag_dir)
