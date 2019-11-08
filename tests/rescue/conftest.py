@@ -1,0 +1,101 @@
+# Copyright 2019 HTCondor Team, Computer Sciences Department,
+# University of Wisconsin-Madison, WI.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import pytest
+
+import time
+from pathlib import Path
+import shutil
+import os
+import textwrap
+
+import htcondor
+import htcondor_dags as dags
+
+
+@pytest.fixture(scope="session")
+def rescue_dag():
+    sub = htcondor.Submit(
+        executable="/bin/echo",
+        arguments="hi",
+        request_memory="16MB",
+        request_disk="1MB",
+    )
+
+    dag = dags.DAG()
+
+    a = dag.layer(name="a", submit_description=sub)
+    b = a.child_layer(name="b", submit_description=sub)
+    c = b.child_layer(
+        name="c",
+        submit_description=sub,
+        abort=dags.DAGAbortCondition(node_exit_value=0, dag_return_value=1),
+    )
+    d = c.child_layer(name="d", submit_description=sub)
+
+    return dag
+
+
+@pytest.fixture(scope="session")
+def rescue_file_text():
+    return textwrap.dedent(
+        """
+    # Rescue DAG file, created after running
+    #  the dagfile.dag DAG file
+    # Created 11/8/2019 04:08:46 UTC
+    # Rescue DAG version: 2.0.1 (partial)
+    
+    # Total number of Nodes: 4
+    # Nodes premarked DONE: 2
+    # Nodes that failed: 0
+    #   <ENDLIST>
+    
+    DONE a:0
+    DONE b:0
+    """
+    )
+
+
+# @pytest.fixture(scope="session")
+# def rescue_dag_path(rescue_dag):
+#     cwd = Path.cwd()
+#
+#     dag_dir = Path.home() / "rescue-dag-test"
+#     dag_dir.mkdir(parents=True)
+#     os.chdir(dag_dir)
+#
+#     dag_file = dags.write_dag(rescue_dag, dag_dir)
+#
+#     sub = htcondor.Submit.from_dag(dag_file.as_posix(), {})
+#
+#     schedd = htcondor.Schedd()
+#     with schedd.transaction() as txn:
+#         cid = sub.queue(txn)
+#
+#     rescue_dag_path = dag_dir / f"{dags.DEFAULT_DAG_FILE_NAME}.rescue001"
+#
+#     start = time.time()
+#     while not rescue_dag_path.exists():
+#         time.sleep(0.1)
+#         if time.time() - start > 120:
+#             print((dag_dir / "dagfile.dag.dagman.out").read_text())
+#             os.system("condor_q -better")
+#             os.system("condor_status")
+#             raise TimeoutError
+#
+#     yield rescue_dag_path
+#
+#     shutil.rmtree(dag_dir)
+#     os.chdir(cwd)

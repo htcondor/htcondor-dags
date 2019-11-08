@@ -42,6 +42,7 @@ from .edges import (
 )
 from .writer import DEFAULT_DAG_FILE_NAME, CONFIG_FILE_NAME, write_dag
 from .formatter import DEFAULT_SEPARATOR, LayerNodeNameFormatter, SimpleFormatter
+from .rescue import rescue
 from . import exceptions
 
 from .version import __version__, version_info, version
