@@ -20,6 +20,8 @@ import collections
 from pathlib import Path
 
 from .formatter import SimpleFormatter
+from .writer import DEFAULT_DAG_FILE_NAME
+from . import exceptions
 
 
 def rescue(dag, rescue_file, formatter=None):
@@ -35,7 +37,6 @@ def _rescue(dag, rescue_file_text, formatter=None):
     apply_rescue(dag, finished_nodes)
 
 
-# TODO: doesn't work for subdag nodes!
 def parse_rescue_file_text(rescue_file_text, formatter):
     finished_nodes = collections.defaultdict(set)
     for line in rescue_file_text.splitlines():
@@ -44,9 +45,7 @@ def parse_rescue_file_text(rescue_file_text, formatter):
         if line == "":
             continue
 
-        print(line)
         node_name = line.lstrip("DONE ")
-        print(node_name)
         layer, index = formatter.parse(node_name)
         finished_nodes[layer].add(index)
 
@@ -58,3 +57,17 @@ def apply_rescue(dag, finished_nodes):
         node.done = {}
         for index in finished_nodes[node.name]:
             node.done[index] = True
+
+
+def find_rescue_file(
+    dag_dir: Path, dag_file_name: str = DEFAULT_DAG_FILE_NAME
+) -> Optional[Path]:
+    dag_dir = Path(dag_dir)
+    rescue_files = sorted(dag_dir.glob(f"{dag_file_name}.rescue*"))
+
+    if len(rescue_files) == 0:
+        raise exceptions.NoRescueFileFound(
+            f"No rescue file for dag {dag_file_name} found in {dag_dir}"
+        )
+
+    return rescue_files[-1]

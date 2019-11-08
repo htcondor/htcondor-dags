@@ -62,13 +62,13 @@ class DAGWriter:
     def __init__(
         self,
         dag: "dag.DAG",
-        layer_node_name_formatter: Optional[formatter.LayerNodeNameFormatter] = None,
+        node_name_formatter: Optional[formatter.NodeNameFormatter] = None,
     ):
         self.dag = dag
 
-        if layer_node_name_formatter is None:
-            layer_node_name_formatter = formatter.SimpleFormatter()
-        self.layer_node_name_formatter = layer_node_name_formatter
+        if node_name_formatter is None:
+            node_name_formatter = formatter.SimpleFormatter()
+        self.node_name_formatter = node_name_formatter
 
         self.join_factory = edges.JoinFactory()
 
@@ -208,17 +208,18 @@ class DAGWriter:
             yield from self.yield_node_meta_lines(layer, name)
 
     def yield_subdag_lines(self, subdag: node.SubDAG) -> Iterator[str]:
-        parts = [f"SUBDAG EXTERNAL {subdag.name} {subdag.dag_file}"]
-        parts += self.get_node_meta_parts(subdag)
+        name = self.get_node_name(subdag, 0)
+        parts = [f"SUBDAG EXTERNAL {name} {subdag.dag_file}"]
+        parts += self.get_node_meta_parts(subdag, 0)
         yield " ".join(parts)
 
-        yield from self.yield_node_meta_lines(subdag, subdag.name)
+        yield from self.yield_node_meta_lines(subdag, name)
 
     def yield_final_node_lines(self, n: node.FinalNode) -> Iterator[str]:
         yield f"FINAL {n.name} {n.name}.sub"
         yield from self.yield_node_meta_lines(n, n.name)
 
-    def get_node_meta_parts(self, n: node.BaseNode, idx: int = 0) -> List[str]:
+    def get_node_meta_parts(self, n: node.BaseNode, idx: int) -> List[str]:
         parts = []
         if n.dir is not None:
             parts.extend(("DIR", str(n.dir)))
@@ -275,14 +276,7 @@ class DAGWriter:
         yield " ".join(str(p) for p in parts)
 
     def get_node_name(self, n: node.BaseNode, idx: int) -> str:
-        if isinstance(n, node.SubDAG):
-            return n.name
-        elif isinstance(n, node.NodeLayer):
-            return self.layer_node_name_formatter.generate(n.name, idx)
-        else:
-            raise Exception(
-                f"Was not able to generate a node name for node {n}, index {idx}"
-            )
+        return self.node_name_formatter.generate(n.name, idx)
 
     def get_indexes_to_node_names(self, n: node.BaseNode) -> Dict[int, str]:
         if isinstance(n, node.SubDAG):
@@ -295,7 +289,7 @@ class DAGWriter:
             )
 
     def join_node_name(self, join: edges.JoinNode) -> str:
-        return self.layer_node_name_formatter.generate("__JOIN__", join.id)
+        return self.node_name_formatter.generate("__JOIN__", join.id)
 
     def yield_edge_lines(self, parent_layer: node.BaseNode) -> Iterator[str]:
         parent_layer_nodes = self.get_indexes_to_node_names(parent_layer)

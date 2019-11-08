@@ -15,14 +15,12 @@
 
 import pytest
 
-import time
-from pathlib import Path
-import shutil
-import os
 import textwrap
 
 import htcondor
+
 import htcondor_dags as dags
+from htcondor_dags.rescue import _rescue
 
 
 @pytest.fixture(scope="session")
@@ -56,16 +54,45 @@ def rescue_file_text():
     #  the dagfile.dag DAG file
     # Created 11/8/2019 04:08:46 UTC
     # Rescue DAG version: 2.0.1 (partial)
-    
+
     # Total number of Nodes: 4
     # Nodes premarked DONE: 2
     # Nodes that failed: 0
     #   <ENDLIST>
-    
+
     DONE a:0
     DONE b:0
     """
     )
+
+
+def test_rescue(rescue_dag, rescue_file_text):
+    _rescue(rescue_dag, rescue_file_text)
+
+    assert rescue_dag._nodes["a"].done == {0: True}
+    assert rescue_dag._nodes["b"].done == {0: True}
+    assert rescue_dag._nodes["c"].done == {}
+    assert rescue_dag._nodes["d"].done == {}
+
+
+@pytest.mark.parametrize("num_rescues", [1, 5, 15, 150])
+def test_find_rescue_file_with_existing_rescue_file(tmp_path, num_rescues):
+    d = tmp_path / "dag-dir"
+    d.mkdir()
+
+    base = "dagfile.dag"
+    for n in range(num_rescues):
+        (d / f"{base}.rescue{n + 1:03d}").touch()
+
+    assert dags.find_rescue_file(d, base) == (d / f"{base}.rescue{num_rescues:03d}")
+
+
+def test_find_rescue_file_raises_if_no_rescue_found(tmp_path):
+    d = tmp_path / "dag-dir"
+    d.mkdir()
+
+    with pytest.raises(dags.exceptions.NoRescueFileFound):
+        dags.find_rescue_file(d, "dagfile.dag")
 
 
 # @pytest.fixture(scope="session")

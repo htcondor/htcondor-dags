@@ -13,16 +13,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-
 import htcondor_dags as dags
-from htcondor_dags.rescue import _rescue
 
 
-def test_rescue(rescue_dag, rescue_file_text):
-    _rescue(rescue_dag, rescue_file_text)
+def test_dag_contains_child():
+    a = dags.DAG()
 
-    assert rescue_dag._nodes["a"].done == {0: True}
-    assert rescue_dag._nodes["b"].done == {0: True}
-    assert rescue_dag._nodes["c"].done == {}
-    assert rescue_dag._nodes["d"].done == {}
+    a_child = a.layer(name="a_child")
+
+    assert a_child in a
+
+
+def test_other_does_not_contain_child():
+    a = dags.DAG()
+    b = dags.DAG()
+
+    a_child = a.layer(name="a_child")
+
+    assert a_child not in b
+
+
+def test_other_does_not_contain_child_even_if_same_name():
+    a = dags.DAG()
+    b = dags.DAG()
+
+    a_child = a.layer(name="child")
+    b_child = b.layer(name="child")
+
+    assert a_child not in b
+    assert b_child not in a

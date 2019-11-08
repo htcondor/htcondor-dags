@@ -41,8 +41,8 @@ from .edges import (
     Slicer,
 )
 from .writer import DEFAULT_DAG_FILE_NAME, CONFIG_FILE_NAME, write_dag
-from .formatter import DEFAULT_SEPARATOR, LayerNodeNameFormatter, SimpleFormatter
-from .rescue import rescue
+from .formatter import DEFAULT_SEPARATOR, NodeNameFormatter, SimpleFormatter
+from .rescue import rescue, find_rescue_file
 from . import exceptions
 
 from .version import __version__, version_info, version

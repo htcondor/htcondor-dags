@@ -13,16 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .conftest import s, dagfile_lines, dagfile_text
-
-
-def test_subdag_name_appears(dag, writer):
-    dag.subdag(name="foobar", dag_file="subdag.dag")
-
-    assert "foobar" in dagfile_text(writer)
+from .conftest import s, dagfile_lines
 
 
 def test_subdag_line_appears(dag, writer):
     dag.subdag(name="foobar", dag_file="subdag.dag")
 
-    assert "SUBDAG EXTERNAL foobar subdag.dag" in dagfile_lines(writer)
+    assert f"SUBDAG EXTERNAL foobar{s}0 subdag.dag" in dagfile_lines(writer)

@@ -36,3 +36,7 @@ class UnrecognizedWalkOrder(DAGsException):
 
 class LayerNameContainsSeparator(DAGsException):
     pass
+
+
+class NoRescueFileFound(DAGsException):
+    pass

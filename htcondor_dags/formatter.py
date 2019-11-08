@@ -22,7 +22,7 @@ from . import exceptions
 DEFAULT_SEPARATOR = ":"
 
 
-class LayerNodeNameFormatter(abc.ABC):
+class NodeNameFormatter(abc.ABC):
     def generate(self, layer_name: str, node_index: int) -> str:
         raise NotImplementedError
 
@@ -30,7 +30,7 @@ class LayerNodeNameFormatter(abc.ABC):
         raise NotImplementedError
 
 
-class SimpleFormatter(LayerNodeNameFormatter):
+class SimpleFormatter(NodeNameFormatter):
     def __init__(self, separator=DEFAULT_SEPARATOR, index_format="{:d}"):
         self.separator = separator
         self.index_format = index_format

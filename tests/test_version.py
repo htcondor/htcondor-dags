@@ -15,6 +15,7 @@
 
 import pytest
 
+import htcondor_dags as dags
 from htcondor_dags.utils import parse_version
 
 
@@ -31,3 +32,7 @@ from htcondor_dags.utils import parse_version
 )
 def test_version_info(version, expected):
     assert parse_version(version) == expected
+
+
+def test_version_string():
+    assert dags.__version__ in dags.version()

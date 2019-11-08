@@ -13,42 +13,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 import htcondor_dags as dags
-from tests.writer.conftest import dagfile_lines, dagfile_text
 
 
-def test_dag_contains_child():
-    a = dags.DAG()
+def test_select_nodes(dag):
+    a = dag.layer(name="a")
+    bb = dag.layer(name="bb")
+    ccc = dag.layer(name="ccc")
+    dd = dag.layer(name="dd")
 
-    a_child = a.layer(name="a_child")
-
-    assert a_child in a
-
-
-def test_other_does_not_contain_child():
-    a = dags.DAG()
-    b = dags.DAG()
-
-    a_child = a.layer(name="a_child")
-
-    assert a_child not in b
+    assert dag.select(lambda n: len(n.name) == 2) == dags.Nodes(bb, dd)
 
 
-def test_other_does_not_contain_child_even_if_same_name():
-    a = dags.DAG()
-    b = dags.DAG()
+def test_glob_nodes(dag):
+    aa = dag.layer(name="aa")
+    bb = dag.layer(name="bb")
+    ac = dag.layer(name="ac")
+    dd = dag.layer(name="dd")
 
-    a_child = a.layer(name="child")
-    b_child = b.layer(name="child")
-
-    assert a_child not in b
-    assert b_child not in a
+    assert dag.glob("a*") == dags.Nodes(aa, ac)
 
 
-def test_roots_and_leaves(dag):
+def test_roots(dag):
     root = dag.layer(name="root")
     middle = root.child_layer(name="middle")
     leaf = middle.child_layer(name="leaf")
 
     assert dag.roots == dags.Nodes(root)
+
+
+def test_leaves(dag):
+    root = dag.layer(name="root")
+    middle = root.child_layer(name="middle")
+    leaf = middle.child_layer(name="leaf")
+
     assert dag.leaves == dags.Nodes(leaf)
