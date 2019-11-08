@@ -110,15 +110,14 @@ class DAGWriter:
 
     def yield_dag_file_lines(self) -> Iterator[str]:
         yield "# BEGIN META"
-        for line in itertools.chain(self.yield_dag_meta_lines()):
+        for line in self.yield_dag_meta_lines():
             yield line
         yield "# END META"
 
         yield "# BEGIN NODES AND EDGES"
         for node in self.dag.walk(order=WalkOrder.BREADTH_FIRST):
-            yield from itertools.chain(
-                self.yield_node_lines(node), self.yield_edge_lines(node)
-            )
+            yield from self.yield_node_lines(node)
+            yield from self.yield_edge_lines(node)
         yield from self.yield_join_node_lines()
         yield "# END NODES AND EDGES"
 

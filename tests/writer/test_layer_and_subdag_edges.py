@@ -16,37 +16,30 @@
 import pytest
 
 import htcondor_dags as dags
-from .conftest import dagfile_lines, dagfile_text
+from .conftest import dagfile_lines
 
 
-def test_one_parent_one_child(dag_dir, dag):
+def test_one_parent_one_child(dag, writer):
     parent = dag.layer(name="parent")
     child = parent.child_subdag(name="child", dag_file="foobar.dag")
 
-    dags.write_dag(dag, dag_dir)
+    lines = dagfile_lines(writer)
+    assert "PARENT parent CHILD child" in lines
 
-    assert "PARENT parent CHILD child" in dagfile_lines(dag_dir)
 
-
-def test_two_parents_one_child(dag_dir, dag):
+def test_two_parents_one_child(dag, writer):
     parent = dag.layer(name="parent", vars=[{}, {}])
     child = parent.child_subdag(name="child", dag_file="foobar.dag")
 
-    dags.write_dag(dag, dag_dir)
-
+    lines = dagfile_lines(writer)
     assert (
-        f"PARENT parent{dags.SEPARATOR}0 parent{dags.SEPARATOR}1 CHILD child"
-        in dagfile_lines(dag_dir)
+        f"PARENT parent{dags.SEPARATOR}0 parent{dags.SEPARATOR}1 CHILD child" in lines
     )
 
 
-def test_one_parent_two_children(dag_dir, dag):
+def test_one_parent_two_children(dag, writer):
     parent = dag.subdag(name="parent", dag_file="foobar.dag")
     child = parent.child_layer(name="child", vars=[{}, {}])
 
-    dags.write_dag(dag, dag_dir)
-
-    assert (
-        f"PARENT parent CHILD child{dags.SEPARATOR}0 child{dags.SEPARATOR}1"
-        in dagfile_lines(dag_dir)
-    )
+    lines = dagfile_lines(writer)
+    assert f"PARENT parent CHILD child{dags.SEPARATOR}0 child{dags.SEPARATOR}1" in lines

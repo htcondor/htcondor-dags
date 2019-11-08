@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import htcondor_dags as dags
-from .conftest import dagfile_lines, dagfile_text
+from tests.writer.conftest import dagfile_lines, dagfile_text
 
 
 def test_dag_contains_child():

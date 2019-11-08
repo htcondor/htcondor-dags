@@ -16,10 +16,10 @@
 import pytest
 
 import htcondor_dags as dags
-from tests.integration.conftest import dagfile_lines
+from tests.writer.conftest import dagfile_lines
 
 
-def test_slicer_edge_produces_correct_dagfile_lines(dag_dir, dag):
+def test_slicer_edge_produces_correct_dagfile_lines(dag, writer):
     # note that the slice stops when the child layer runs out of vars!
     parent = dag.layer(name="parent", vars=[{}] * 6)
     child = parent.child_layer(
@@ -30,9 +30,7 @@ def test_slicer_edge_produces_correct_dagfile_lines(dag_dir, dag):
         ),
     )
 
-    dags.write_dag(dag, dag_dir)
-
-    lines = dagfile_lines(dag_dir)
+    lines = dagfile_lines(writer)
 
     assert f"PARENT parent{dags.SEPARATOR}0 CHILD child{dags.SEPARATOR}1" in lines
     assert f"PARENT parent{dags.SEPARATOR}2 CHILD child{dags.SEPARATOR}3" in lines

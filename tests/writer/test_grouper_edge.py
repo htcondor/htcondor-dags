@@ -16,16 +16,15 @@
 import pytest
 
 import htcondor_dags as dags
-from tests.integration.conftest import dagfile_lines
+
+from .conftest import dagfile_lines
 
 
-def test_grouper_edge_produces_correct_dagfile_lines(dag_dir, dag):
+def test_grouper_edge_produces_correct_dagfile_lines(dag, writer):
     parent = dag.layer(name="parent", vars=[{}] * 6)
     child = parent.child_layer(name="child", vars=[{}] * 4, edge=dags.Grouper(3, 2))
 
-    dags.write_dag(dag, dag_dir)
-
-    lines = dagfile_lines(dag_dir)
+    lines = dagfile_lines(writer)
 
     assert (
         f"PARENT parent{dags.SEPARATOR}0 parent{dags.SEPARATOR}1 parent{dags.SEPARATOR}2 CHILD __JOIN__{dags.SEPARATOR}0"
@@ -58,7 +57,7 @@ def test_grouper_edge_produces_correct_dagfile_lines(dag_dir, dag):
     ],
 )
 def test_compatible_grouper_edges(
-    num_parent_vars, num_child_vars, parent_group_size, child_group_size, dag, dag_dir
+    num_parent_vars, num_child_vars, parent_group_size, child_group_size, dag, writer
 ):
     parent = dag.layer(name="parent", vars=[{}] * num_parent_vars)
     child = parent.child_layer(
@@ -67,7 +66,7 @@ def test_compatible_grouper_edges(
         edge=dags.Grouper(parent_group_size, child_group_size),
     )
 
-    dags.write_dag(dag, dag_dir)
+    dagfile_lines(writer)
 
 
 @pytest.mark.parametrize(
@@ -75,7 +74,7 @@ def test_compatible_grouper_edges(
     [(2, 1, 1, 1), (1, 2, 1, 1), (9, 6, 3, 3), (5, 1, 3, 1), (1, 5, 1, 3)],
 )
 def test_incompatible_grouper_edges(
-    num_parent_vars, num_child_vars, parent_group_size, child_group_size, dag, dag_dir
+    num_parent_vars, num_child_vars, parent_group_size, child_group_size, dag, writer
 ):
     parent = dag.layer(name="parent", vars=[{}] * num_parent_vars)
     child = parent.child_layer(
@@ -85,4 +84,4 @@ def test_incompatible_grouper_edges(
     )
 
     with pytest.raises(dags.exceptions.IncompatibleGrouper):
-        dags.write_dag(dag, dag_dir)
+        dagfile_lines(writer)

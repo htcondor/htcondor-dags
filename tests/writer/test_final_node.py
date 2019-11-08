@@ -15,24 +15,11 @@
 
 import pytest
 
-import htcondor_dags as dags
+from .conftest import dagfile_lines
 
 
-@pytest.fixture(scope="function")
-def dag_dir(tmp_path):
-    d = tmp_path / "dag-dir"
-    d.mkdir()
+def test_final_node_line(dag, writer):
+    dag.final(name="fin")
 
-    return d
-
-
-def dagfile_text(dag_dir, dag_file_name=None):
-    if dag_file_name is None:
-        dag_file_name = dags.DEFAULT_DAG_FILE_NAME
-    text = (dag_dir / dag_file_name).read_text()
-    print(text)
-    return text
-
-
-def dagfile_lines(dag_dir, dag_file_name=None):
-    return dagfile_text(dag_dir, dag_file_name).splitlines()
+    lines = dagfile_lines(writer)
+    assert "FINAL fin fin.sub" in lines
