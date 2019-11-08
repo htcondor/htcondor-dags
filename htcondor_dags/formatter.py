@@ -43,7 +43,14 @@ class SimpleFormatter(NodeNameFormatter):
             raise exceptions.LayerNameContainsSeparator(
                 f"The layer name {layer_name} cannot contain the node name separator character '{self.separator}'"
             )
-        return f"{layer_name}{self.separator}{self.index_format.format(node_index + self.offset)}"
+        name = f"{layer_name}{self.separator}{self.index_format.format(node_index + self.offset)}"
+
+        if self.parse(name) != (layer_name, node_index):
+            raise exceptions.NoninvertibleFormat(
+                f"{self.__class__.__name__} was not able to invert the formatted node name {name}. Perhaps the index_format is incompatible?"
+            )
+
+        return name
 
     def parse(self, node_name: str) -> Tuple[str, int]:
         layer, index = node_name.split(self.separator)

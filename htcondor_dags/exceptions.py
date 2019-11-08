@@ -40,3 +40,7 @@ class LayerNameContainsSeparator(DAGsException):
 
 class NoRescueFileFound(DAGsException):
     pass
+
+
+class NoninvertibleFormat(DAGsException):
+    pass
