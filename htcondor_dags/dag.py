@@ -75,6 +75,13 @@ def _check_node_name_uniqueness(func):
 
 
 class DAG:
+    """
+    This object represents the execution graph.
+    It contains the individual :class:`NodeLayer` and :class:`SubDAG` that are
+    the "logical" nodes in the graph, created by the :meth:`layer` and
+    :meth:`subdag` methods respectively.
+    """
+
     def __init__(
         self,
         dagman_config: Optional[Dict[str, Any]] = None,
@@ -164,7 +171,7 @@ class DAG:
         """
         Iterate over all of the descendants
         (i.e., children, children of children, etc.)
-         of some node, in some sensible order.
+        of some node, in some sensible order.
 
         Sibling order is not specified.
 
@@ -208,7 +215,7 @@ class DAG:
     def edges(
         self
     ) -> Iterator[Tuple[Tuple[node.BaseNode, node.BaseNode], edges.BaseEdge]]:
-        """Iterate over ((parent, child), edge_type) tuples."""
+        """Iterate over ``((parent, child), edge)`` tuples."""
         yield from self._edges
 
     def __contains__(self, node) -> bool:
@@ -216,21 +223,26 @@ class DAG:
 
     @_check_node_name_uniqueness
     def layer(self, **kwargs) -> node.NodeLayer:
-        """Create a new :class:`NodeLayer` with no parents or children."""
+        """Create a new :class:`NodeLayer` in the graph with no parents or children."""
         n = node.NodeLayer(dag=self, **kwargs)
         self._nodes.add(n)
         return n
 
     @_check_node_name_uniqueness
     def subdag(self, **kwargs) -> node.SubDAG:
-        """Create a new :class:`SubDAG` with no parents or children."""
+        """Create a new :class:`SubDAG` in the graph with no parents or children."""
         n = node.SubDAG(dag=self, **kwargs)
         self._nodes.add(n)
         return n
 
     @_check_node_name_uniqueness
     def final(self, **kwargs) -> node.FinalNode:
-        """Create the FINAL node of the DAG."""
+        """
+        Create the ``FINAL`` node of the DAG.
+        A DAG can only have one ``FINAL`` node; if you call this method multiple
+        times, it will override any previous calls.
+        Instead, mutate the :class:`FinalNode` instance that it returns.
+        """
         n = node.FinalNode(dag=self, **kwargs)
         self._final_node = n
         return n

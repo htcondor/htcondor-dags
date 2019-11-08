@@ -3,6 +3,10 @@ API Reference
 
 .. py:currentmodule:: htcondor_dags
 
+.. attention::
+    This is not documentation for DAGMan itself! If you run into DAGMan jargon
+    that isn't explained here, see `The DAGMan Manual <https://htcondor.readthedocs.io/en/latest/users-manual/dagman-applications.html>`_.
+
 Creating DAGs
 -------------
 
@@ -47,3 +51,9 @@ DAG Configuration
 .. autoclass:: NodeStatusFile
 
 
+Rescue DAGs
+-----------
+
+.. autofunction:: rescue
+
+.. autofunction:: find_rescue_file

@@ -1,23 +1,30 @@
 v0.2.0
 ======
 
+.. py:currentmodule:: htcondor_dags
+
 New Features
 ------------
 
 * You can now walk over all of the ancestors of a node
   (i.e., its parents, the parents of its parents, the parents of parents of
-  its parents, etc.) using :meth:`BaseNode.walk_ancestors`,
-  and similarly for its descendants using :meth:`BaseNode.walk_descendants`.
-* Implemented a new :class:`Grouper` edge. It allows flexible "chunking" of the
+  its parents, etc.) using :meth:`~BaseNode.walk_ancestors`,
+  and similarly for its descendants using :meth:`~BaseNode.walk_descendants`.
+* Implemented a new :class:`~Grouper` edge. It allows flexible "chunking" of the
   parent and child layers. For example, every three nodes in the parent layer can
   be connected to every two nodes in the child layer.
-* Custom edges can now be created by implementing the :class:`BaseEdge` interface.
+* Custom edges can now be created by implementing the :class:`~BaseEdge` interface.
 * ``NOOP`` and ``DONE`` can now be set on individual nodes inside a layer.
-  In addition to being a single boolean value, the corresponding :class:`NodeLayer`
+  In addition to being a single boolean value, the corresponding :class:`~NodeLayer`
   attributes can now be set to a dictionary mapping node indices to a boolean.
   Missing indices are assumed to be ``False``
   For example, if node index 5 is not present in the ``noop`` dictionary, it is not ``NOOP``.
   It is only ``NOOP`` if it is present and its value is ``True``.
+* The submit description for a :class:`~NodeLayer` can be given as a path to an
+  existing HTCondor submit file.
+* State information from previous DAGMan runs, encoded in a DAGMan "rescue" file,
+  can now be loaded and laid over an existing :class:`~DAG` using the new
+  :func:`~rescue` function.
 
 
 Bug Fixes

@@ -18,5 +18,14 @@ import enum
 
 
 class WalkOrder(enum.Enum):
+    """
+    An enumeration for keeping track of which order to walk through a graph.
+    Depth-first means that parents/children will be visited before siblings.
+    Breadth-first means that siblings will be visited before parents/children.
+    """
+
     DEPTH_FIRST = "DEPTH"
     BREADTH_FIRST = "BREADTH"
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}.{self._name_}"

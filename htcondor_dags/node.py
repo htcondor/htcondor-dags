@@ -80,9 +80,14 @@ class Script:
 
 @functools.total_ordering
 class BaseNode(abc.ABC):
+    """
+    This is the superclass for all node-like objects (things that can be the
+    logical nodes in a :class:`DAG`).
+    """
+
     def __init__(
         self,
-        dag,
+        dag: "dag.DAG",
         *,
         name: str,
         dir: Optional[Path] = None,
@@ -91,12 +96,51 @@ class BaseNode(abc.ABC):
         retries: Optional[int] = None,
         retry_unless_exit: Optional[int] = None,
         pre: Optional[Script] = None,
-        pre_skip_exit_code=None,
         post: Optional[Script] = None,
+        pre_skip_exit_code=None,
         priority: int = 0,
         category: Optional[str] = None,
         abort: Optional[DAGAbortCondition] = None,
     ):
+        """
+
+        Parameters
+        ----------
+        dag
+            Which :class:`DAG` to attach this node to.
+        name
+            The human-readable name of this node.
+        dir
+            The directory to submit from. If ``None``, it will be the directory
+            the DAG itself was submitted from.
+        noop
+            If this is ``True``, this node will be skipped and marked as completed,
+            no matter what it says it does.
+            For a :class:`NodeLayer`, this can be dictionary mapping individual
+            underlying node indices to their desired value.
+        done
+            If this is ``True``, this node will be considered already completed.
+            For a :class:`NodeLayer`, this can be dictionary mapping individual
+            underlying node indices to their desired value.
+        retries
+            The number of times to retry the node if it fails
+            (defined by ``retry_unless_exit``).
+        retry_unless_exit
+            If the node exits with this code, it will not be retried.
+        pre
+            A :class:`Script` to run before the node itself.
+        post
+            A :class:`Script` to run after the node itself.
+        pre_skip_exit_code
+            If the pre-script exits with this code, the node will be skipped.
+        priority
+            The internal priority for DAGMan to run this node.
+        category
+            Which ``CATEGORY`` this node belongs to.
+        abort
+            A :class:`DAGAbortCondition` which may cause the entire DAG to stop
+            if this node exits in a certain way.
+        """
         self._dag = dag
         self.name = name
 
@@ -117,10 +161,6 @@ class BaseNode(abc.ABC):
     def __repr__(self) -> str:
         return utils.make_repr(self, ("name",))
 
-    def description(self) -> str:
-        data = "\n".join(f"  {k} = {v}" for k, v in self.__dict__.items())
-        return f"{self.__class__.__name__}(\n{data}\n)"
-
     def __iter__(self) -> "BaseNode":
         yield self
 
@@ -140,6 +180,24 @@ class BaseNode(abc.ABC):
     def child_layer(
         self, edge: Optional[edges.BaseEdge] = None, **kwargs
     ) -> "NodeLayer":
+        """
+        Create a new :class:`NodeLayer` which is a child of this node.
+
+        Parameters
+        ----------
+        edge
+            The type of edge to use; an instance of a concrete subclass of
+            :class:`BaseEdge`. If ``None``, a :class:`ManyToMany` edge will be
+            used.
+        kwargs
+            Additional keyword arguments are passed to the :class:`NodeLayer`
+            constructor.
+
+        Returns
+        -------
+        node_layer
+            The newly-created node layer.
+        """
         node = self._dag.layer(**kwargs)
 
         self._dag._edges.add(self, node, edge=edge)
@@ -149,6 +207,24 @@ class BaseNode(abc.ABC):
     def parent_layer(
         self, edge: Optional[edges.BaseEdge] = None, **kwargs
     ) -> "NodeLayer":
+        """
+        Create a new :class:`NodeLayer` which is a parent of this node.
+
+        Parameters
+        ----------
+        edge
+            The type of edge to use; an instance of a concrete subclass of
+            :class:`BaseEdge`. If ``None``, a :class:`ManyToMany` edge will be
+            used.
+        kwargs
+            Additional keyword arguments are passed to the :class:`NodeLayer`
+            constructor.
+
+        Returns
+        -------
+        node_layer
+            The newly-created node layer.
+        """
         node = self._dag.layer(**kwargs)
 
         self._dag._edges.add(node, self, edge=edge)
@@ -156,6 +232,24 @@ class BaseNode(abc.ABC):
         return node
 
     def child_subdag(self, edge: Optional[edges.BaseEdge] = None, **kwargs) -> "SubDAG":
+        """
+        Create a new :class:`SubDAG` which is a child of this node.
+
+        Parameters
+        ----------
+        edge
+            The type of edge to use; an instance of a concrete subclass of
+            :class:`BaseEdge`. If ``None``, a :class:`ManyToMany` edge will be
+            used.
+        kwargs
+            Additional keyword arguments are passed to the :class:`SubDAG`
+            constructor.
+
+        Returns
+        -------
+        subdag
+            The newly-created subDAG.
+        """
         node = self._dag.subdag(**kwargs)
 
         self._dag._edges.add(self, node, edge=edge)
@@ -165,6 +259,24 @@ class BaseNode(abc.ABC):
     def parent_subdag(
         self, edge: Optional[edges.BaseEdge] = None, **kwargs
     ) -> "SubDAG":
+        """
+        Create a new :class:`SubDAG` which is a parent of this node.
+
+        Parameters
+        ----------
+        edge
+            The type of edge to use; an instance of a concrete subclass of
+            :class:`BaseEdge`. If ``None``, a :class:`ManyToMany` edge will be
+            used.
+        kwargs
+            Additional keyword arguments are passed to the :class:`SubDAG`
+            constructor.
+
+        Returns
+        -------
+        subdag
+            The newly-created subDAG.
+        """
         node = self._dag.subdag(**kwargs)
 
         self._dag._edges.add(node, self, edge=edge)
@@ -172,6 +284,22 @@ class BaseNode(abc.ABC):
         return node
 
     def add_children(self, *nodes, edge: Optional[edges.BaseEdge] = None) -> "BaseNode":
+        """
+        Makes all of the ``nodes`` children of this node.
+
+        Parameters
+        ----------
+        nodes
+            The nodes to make children of this node.
+        edge
+            The type of edge to use; an instance of a concrete subclass of
+            :class:`BaseEdge`. If ``None``, a :class:`ManyToMany` edge will be
+            used.
+
+        Returns
+        -------
+        self
+        """
         nodes = utils.flatten(nodes)
         for node in nodes:
             self._dag._edges.add(self, node, edge=edge)
@@ -179,6 +307,18 @@ class BaseNode(abc.ABC):
         return self
 
     def remove_children(self, *nodes) -> "BaseNode":
+        """
+        Makes sure that the ``nodes`` are **not** children of this node.
+
+        Parameters
+        ----------
+        nodes
+            The nodes to remove edges from.
+
+        Returns
+        -------
+        self
+        """
         nodes = utils.flatten(nodes)
         for node in nodes:
             self._dag._edges.remove(self, node)
@@ -186,6 +326,22 @@ class BaseNode(abc.ABC):
         return self
 
     def add_parents(self, *nodes, edge: Optional[edges.BaseEdge] = None) -> "BaseNode":
+        """
+        Makes all of the ``nodes`` parents of this node.
+
+        Parameters
+        ----------
+        nodes
+            The nodes to make parents of this node.
+        edge
+            The type of edge to use; an instance of a concrete subclass of
+            :class:`BaseEdge`. If ``None``, a :class:`ManyToMany` edge will be
+            used.
+
+        Returns
+        -------
+        self
+        """
         nodes = utils.flatten(nodes)
         for node in nodes:
             self._dag._edges.add(node, self, edge=edge)
@@ -193,6 +349,18 @@ class BaseNode(abc.ABC):
         return self
 
     def remove_parents(self, *nodes) -> "BaseNode":
+        """
+        Makes sure that the ``nodes`` are **not** parents of this node.
+
+        Parameters
+        ----------
+        nodes
+            The nodes to remove edges from.
+
+        Returns
+        -------
+        self
+        """
         nodes = utils.flatten(nodes)
         for node in nodes:
             self._dag._edges.remove(node, self)
@@ -200,21 +368,25 @@ class BaseNode(abc.ABC):
         return self
 
     @property
-    def parents(self) -> "Nodes":
-        return self._dag.node_to_parents[self]
+    def children(self) -> "Nodes":
+        """Return a :class:`Nodes` containing all of the children of this node."""
+        return self._dag.node_to_children[self]
 
     @property
-    def children(self) -> "Nodes":
-        return self._dag.node_to_children[self]
+    def parents(self) -> "Nodes":
+        """Return a :class:`Nodes` containing all of the parents of this node."""
+        return self._dag.node_to_parents[self]
 
     def walk_ancestors(
         self, order: WalkOrder = WalkOrder.DEPTH_FIRST
     ) -> Iterator["BaseNode"]:
+        """Walk over all of the ancestors of this node, in the given order."""
         return self._dag.walk_ancestors(node=self, order=order)
 
     def walk_descendants(
         self, order: WalkOrder = WalkOrder.DEPTH_FIRST
     ) -> Iterator["BaseNode"]:
+        """Walk over all of the descendants of this node, in the given order."""
         return self._dag.walk_descendants(node=self, order=order)
 
 
@@ -227,6 +399,22 @@ class NodeLayer(BaseNode):
         vars: Optional[Iterable[Dict[str, str]]] = None,
         **kwargs,
     ):
+        """
+        Parameters
+        ----------
+        dag
+            The DAG to connect this node to.
+        submit_description
+            The HTCondor submit description for this node. Can be either an
+            :class:`htcondor.Submit` object or a :class:`~pathlib.Path` to an
+            existing submit file on disk.
+        vars
+            The ``VARS`` for this logical node; one actual node will be created
+            for each dictionary in the ``vars``.
+        kwargs
+            Additional keyword arguments are passed to the :class:`BaseNode`
+            constructor.
+        """
         super().__init__(dag, **kwargs)
 
         self.submit_description = submit_description or htcondor.Submit({})
@@ -239,6 +427,18 @@ class NodeLayer(BaseNode):
 
 class SubDAG(BaseNode):
     def __init__(self, dag: "dag.DAG", *, dag_file: Path, **kwargs):
+        """
+        Parameters
+        ----------
+        dag
+            The DAG to connect this node to.
+        dag_file
+            The :class:`pathlib.Path` to where the subDAG's DAG description file
+            is (or will be).
+        kwargs
+            Additional keyword arguments are passed to the :class:`BaseNode`
+            constructor.
+        """
         super().__init__(dag, **kwargs)
 
         self.dag_file = dag_file
@@ -251,12 +451,29 @@ class FinalNode(BaseNode):
         submit_description: Union[Optional[htcondor.Submit], Path] = None,
         **kwargs,
     ):
+        """
+        Parameters
+        ----------
+        dag
+            The DAG to connect this node to.
+        submit_description
+            The HTCondor submit description for this node. Can be either an
+            :class:`htcondor.Submit` object or a :class:`~pathlib.Path` to an
+            existing submit file on disk.
+        kwargs
+            Additional keyword arguments are passed to the :class:`BaseNode`
+            constructor.
+        """
         super().__init__(dag, **kwargs)
 
         self.submit_description = submit_description or htcondor.Submit({})
 
 
 class Nodes:
+    """
+    This class represents an arbitrary collection of :class:`BaseNode`.
+    """
+
     def __init__(self, *nodes):
         self.nodes = dag.NodeStore()
         nodes = utils.flatten(nodes)

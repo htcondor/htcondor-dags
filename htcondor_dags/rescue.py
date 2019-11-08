@@ -19,13 +19,41 @@ from typing import Optional, List, Dict, Iterator, Mapping
 import collections
 from pathlib import Path
 
-from .formatter import SimpleFormatter
+from . import dag
+from .formatter import NodeNameFormatter, SimpleFormatter
 from .writer import DEFAULT_DAG_FILE_NAME
 from . import exceptions
 
 
-def rescue(dag, rescue_file, formatter=None):
-    return _rescue(dag, Path(rescue_file).read_text(), formatter)
+def rescue(dag: dag.DAG, rescue_file: Path, formatter: NodeNameFormatter = None):
+    """
+    Applies state recorded in a DAGMan rescue file to the ``dag``.
+    The ``dag`` will be modified in-place.
+
+    .. warning::
+        Running this function on a :class:`DAG` **replaces** any existing
+        ``DONE`` information on **all** of its nodes.
+        Every node will have a dictionary for its ``done`` attribute.
+        If you want to edit this information manually, always run this function
+        **first**, then make the desired changes on top.
+
+    .. warning::
+        This function cannot detect changes in node names. If node names are
+        different in the rescue file compared to the :class:`DAG`, this function
+        will not behave as expected.
+
+    Parameters
+    ----------
+    dag
+        The DAG to apply the rescue state to.
+    rescue_file
+        The file to get rescue state from.
+        Use the :func:`find_rescue_file` helper function to find the right rescue
+        file.
+    formatter
+        The node name formatter that was used to write out the original DAG.
+    """
+    _rescue(dag, Path(rescue_file).read_text(), formatter)
 
 
 def _rescue(dag, rescue_file_text, formatter=None):
@@ -62,6 +90,21 @@ def apply_rescue(dag, finished_nodes):
 def find_rescue_file(
     dag_dir: Path, dag_file_name: str = DEFAULT_DAG_FILE_NAME
 ) -> Optional[Path]:
+    """
+    Finds the latest rescue file in a DAG directory (just like DAGMan itself would).
+
+    Parameters
+    ----------
+    dag_dir
+        The directory to search in.
+    dag_file_name
+        The base name of the DAG description file.
+
+    Returns
+    -------
+    rescue_file
+        The :class:`pathlib.Path` to the latest rescue file.
+    """
     dag_dir = Path(dag_dir)
     rescue_files = sorted(dag_dir.glob(f"{dag_file_name}.rescue*"))
 
