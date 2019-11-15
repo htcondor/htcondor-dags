@@ -56,6 +56,10 @@ Writing a DAG to Disk
 
 .. autofunction:: write_dag
 
+.. autoclass:: NodeNameFormatter
+
+.. autoclass:: SimpleFormatter
+
 
 DAG Configuration
 -----------------
