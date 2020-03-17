@@ -16,12 +16,10 @@
 import htcondor_dags as dags
 
 
-def test_dag_contains_child():
-    a = dags.DAG()
+def test_dag_contains_child(dag):
+    a_child = dag.layer(name="a_child")
 
-    a_child = a.layer(name="a_child")
-
-    assert a_child in a
+    assert a_child in dag
 
 
 def test_other_does_not_contain_child():

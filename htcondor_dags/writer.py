@@ -33,7 +33,7 @@ NOOP_SUBMIT_FILE_NAME = "__JOIN__.sub"
 
 def write_dag(
     dag: dag.DAG, dag_dir: Path, dag_file_name: Optional[str] = DEFAULT_DAG_FILE_NAME
-):
+) -> Path:
     """
     Write out the given DAG to the given directory.
     This includes the DAG description file itself, as well as any associated
@@ -74,7 +74,7 @@ class DAGWriter:
 
     def write(
         self, dag_dir: Path, dag_file_name: Optional[str] = DEFAULT_DAG_FILE_NAME
-    ):
+    ) -> Path:
         dag_dir = Path(dag_dir).absolute()
         dag_file_name = dag_file_name or DEFAULT_DAG_FILE_NAME
 
@@ -220,18 +220,15 @@ class DAGWriter:
         yield from self.yield_node_meta_lines(n, n.name)
 
     def get_node_meta_parts(self, n: node.BaseNode, idx: int) -> List[str]:
-        parts = []
+        parts: List[str] = []
+
         if n.dir is not None:
             parts.extend(("DIR", str(n.dir)))
 
-        if (isinstance(n.noop, bool) and n.noop) or (
-            isinstance(n.noop, Mapping) and n.noop.get(idx, False)
-        ):
+        if n.noop.get(idx, False):
             parts.append("NOOP")
 
-        if (isinstance(n.done, bool) and n.done) or (
-            isinstance(n.done, Mapping) and n.done.get(idx, False)
-        ):
+        if n.done.get(idx, False):
             parts.append("DONE")
 
         return parts
@@ -269,7 +266,7 @@ class DAGWriter:
         parts = ["SCRIPT"]
 
         if script.retry:
-            parts.extend(("DEFER", script.retry_status, script.retry_delay))
+            parts.extend(["DEFER", script.retry_status, script.retry_delay])
 
         parts.extend((which.upper(), name, script.executable, *script.arguments))
 

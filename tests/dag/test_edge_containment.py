@@ -13,19 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import htcondor_dags as dags
 
-import enum
 
+def test_dag_contains_edge(dag):
+    a = dag.layer(name="a")
+    b = a.child_layer(name="b")
 
-class WalkOrder(enum.Enum):
-    """
-    An enumeration for keeping track of which order to walk through a graph.
-    Depth-first means that parents/children will be visited before siblings.
-    Breadth-first means that siblings will be visited before parents/children.
-    """
-
-    DEPTH_FIRST = "DEPTH"
-    BREADTH_FIRST = "BREADTH"
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}.{self._name_}"
+    assert (a, b) in dag.edges

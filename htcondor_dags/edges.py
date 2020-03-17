@@ -87,7 +87,7 @@ class BaseEdge(abc.ABC):
         """
         raise NotImplementedError
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__class__.__name__
 
 
@@ -106,9 +106,8 @@ class ManyToMany(BaseEdge):
             Tuple[JoinNode, Tuple[int]],
         ]
     ]:
-        # TODO: this implicitly assumes that anything that isn't a NodeLayer must be a SubDAG
-        num_parent_vars = len(parent.vars) if isinstance(parent, node.NodeLayer) else 1
-        num_child_vars = len(child.vars) if isinstance(child, node.NodeLayer) else 1
+        num_parent_vars = len(parent)
+        num_child_vars = len(child)
 
         if num_parent_vars == 1 or num_child_vars == 1:
             # the weird pattern here is just to symmetrize the result, so that
@@ -136,9 +135,8 @@ class OneToOne(BaseEdge):
             Tuple[JoinNode, Tuple[int]],
         ]
     ]:
-        # TODO: this implicitly assumes that anything that isn't a NodeLayer must be a SubDAG
-        num_parent_vars = len(parent.vars) if isinstance(parent, node.NodeLayer) else 1
-        num_child_vars = len(child.vars) if isinstance(child, node.NodeLayer) else 1
+        num_parent_vars = len(parent)
+        num_child_vars = len(child)
 
         if num_parent_vars != num_child_vars:
             raise exceptions.OneToOneEdgeNeedsSameNumberOfVars(
@@ -183,23 +181,22 @@ class Grouper(BaseEdge):
             Tuple[JoinNode, Tuple[int]],
         ]
     ]:
-        # TODO: this implicitly assumes that anything that isn't a NodeLayer must be a SubDAG
-        num_parent_vars = len(parent.vars) if isinstance(parent, node.NodeLayer) else 1
-        num_child_vars = len(child.vars) if isinstance(child, node.NodeLayer) else 1
+        num_parent_vars = len(parent)
+        num_child_vars = len(child)
 
         if num_parent_vars % self.parent_chunk_size != 0:
             raise exceptions.IncompatibleGrouper(
-                f"Cannot apply edge {self} to parent layer {parent} because number of vars ({len(parent.vars)}) is not evenly divisible by the parent chunk size ({self.parent_chunk_size})"
+                f"Cannot apply edge {self} to parent layer {parent} because number of real parent nodes ({len(parent)}) is not evenly divisible by the parent chunk size ({self.parent_chunk_size})"
             )
         if num_child_vars % self.child_chunk_size != 0:
             raise exceptions.IncompatibleGrouper(
-                f"Cannot apply edge {self} to child layer {child} because number of vars ({len(child.vars)}) is not evenly divisible by the child chunk size ({self.child_chunk_size})"
+                f"Cannot apply edge {self} to child layer {child} because number of real child nodes ({len(child)}) is not evenly divisible by the child chunk size ({self.child_chunk_size})"
             )
         if (num_parent_vars // self.parent_chunk_size) != (
             num_child_vars // self.child_chunk_size
         ):
             raise exceptions.IncompatibleGrouper(
-                f"Cannot apply edge {self} to layers {parent} and {child} because they do not produce the same number of chunk (parent chunk: {len(parent.vars)} / {self.parent_chunk_size} = {len(parent.vars) // self.parent_chunk_size}, child chunk: {len(child.vars)} / {self.child_chunk_size} = {len(child.vars) // self.child_chunk_size})"
+                f"Cannot apply edge {self} to layers {parent} and {child} because they do not produce the same number of chunks (parent chunk: {len(parent)} / {self.parent_chunk_size} = {len(parent) // self.parent_chunk_size}, child chunk: {len(child)} / {self.child_chunk_size} = {len(child) // self.child_chunk_size})"
             )
 
         for parent_group, child_group in zip(
@@ -210,7 +207,7 @@ class Grouper(BaseEdge):
             yield (parent_group, join)
             yield (join, child_group)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return utils.make_repr(self, ("parent_chunk_size", "child_chunk_size"))
 
 
@@ -237,9 +234,8 @@ class Slicer(BaseEdge):
             Tuple[JoinNode, Tuple[int]],
         ]
     ]:
-        # TODO: this implicitly assumes that anything that isn't a NodeLayer must be a SubDAG
-        num_parent_vars = len(parent.vars) if isinstance(parent, node.NodeLayer) else 1
-        num_child_vars = len(child.vars) if isinstance(child, node.NodeLayer) else 1
+        num_parent_vars = len(parent)
+        num_child_vars = len(child)
 
         for parent_index, child_index in zip(
             itertools.islice(
@@ -257,5 +253,5 @@ class Slicer(BaseEdge):
         ):
             yield ((parent_index,), (child_index,))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return utils.make_repr(self, ("parent_slice", "child_slice"))

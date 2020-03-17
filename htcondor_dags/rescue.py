@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import logging
-from typing import Optional, List, Dict, Iterator, Mapping
+from typing import Optional, List, Dict, Iterator, Mapping, Set
 
 import collections
 from pathlib import Path
@@ -25,7 +25,9 @@ from .writer import DEFAULT_DAG_FILE_NAME
 from . import exceptions
 
 
-def rescue(dag: dag.DAG, rescue_file: Path, formatter: NodeNameFormatter = None):
+def rescue(
+    dag: dag.DAG, rescue_file: Path, formatter: Optional[NodeNameFormatter] = None
+) -> None:
     """
     Applies state recorded in a DAGMan rescue file to the ``dag``.
     The ``dag`` will be modified in-place.
@@ -53,20 +55,21 @@ def rescue(dag: dag.DAG, rescue_file: Path, formatter: NodeNameFormatter = None)
     formatter
         The node name formatter that was used to write out the original DAG.
     """
+    if formatter is None:
+        formatter = SimpleFormatter()
     _rescue(dag, Path(rescue_file).read_text(), formatter)
 
 
-def _rescue(dag, rescue_file_text, formatter=None):
-    if formatter is None:
-        formatter = SimpleFormatter()
-
+def _rescue(dag: dag.DAG, rescue_file_text: str, formatter: NodeNameFormatter) -> None:
     finished_nodes = parse_rescue_file_text(rescue_file_text, formatter)
 
     apply_rescue(dag, finished_nodes)
 
 
-def parse_rescue_file_text(rescue_file_text, formatter):
-    finished_nodes = collections.defaultdict(set)
+def parse_rescue_file_text(
+    rescue_file_text: str, formatter: NodeNameFormatter
+) -> Mapping[str, Set[int]]:
+    finished_nodes: Mapping[str, Set[int]] = collections.defaultdict(set)
     for line in rescue_file_text.splitlines():
         if line.startswith("#"):
             continue
@@ -80,9 +83,9 @@ def parse_rescue_file_text(rescue_file_text, formatter):
     return finished_nodes
 
 
-def apply_rescue(dag, finished_nodes):
+def apply_rescue(dag: dag.DAG, finished_nodes: Mapping[str, Set[int]]) -> None:
     for node in dag.nodes:
-        node.done = {}
+        node.done.clear()
         for index in finished_nodes[node.name]:
             node.done[index] = True
 
