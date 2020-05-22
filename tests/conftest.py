@@ -15,7 +15,7 @@
 
 import pytest
 
-import htcondor_dags as dags
+from htcondor import dags
 
 
 @pytest.fixture(scope="function")

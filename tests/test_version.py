@@ -15,8 +15,8 @@
 
 import pytest
 
-import htcondor_dags as dags
-from htcondor_dags.utils import parse_version
+from htcondor import dags
+from htcondor.dags.utils import parse_version
 
 
 @pytest.mark.parametrize(

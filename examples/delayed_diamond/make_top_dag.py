@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import htcondor
-import htcondor_dags as dags
+from htcondor import dags
 
 top_layer_dag = dags.DAG()
 

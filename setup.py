@@ -16,14 +16,14 @@
 import re
 from pathlib import Path
 
-from setuptools import setup
+from setuptools import setup, find_namespace_packages
 
 THIS_DIR = Path(__file__).parent
 
 
 def find_version():
-    """Grab the version out of htcondor_dags/version.py without importing it."""
-    version_file_text = (THIS_DIR / "htcondor_dags" / "version.py").read_text()
+    """Grab the version out of dags/version.py without importing it."""
+    version_file_text = (THIS_DIR / "htcondor" / "dags" / "version.py").read_text()
     version_match = re.search(
         r"^__version__ = ['\"]([^'\"]*)['\"]", version_file_text, re.M
     )
@@ -55,6 +55,6 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Topic :: System :: Distributed Computing",
     ],
-    packages=["htcondor_dags"],
+    packages=find_namespace_packages(include=['htcondor.*']),
     install_requires=Path("requirements.txt").read_text().splitlines(),
 )

@@ -19,8 +19,8 @@ import textwrap
 
 import htcondor
 
-import htcondor_dags as dags
-from htcondor_dags.rescue import _rescue
+from htcondor import dags
+from htcondor.dags.rescue import _rescue
 
 
 @pytest.fixture(scope="session")
@@ -93,7 +93,7 @@ def test_find_rescue_file_raises_if_no_rescue_found(tmp_path):
     d = tmp_path / "dag-dir"
     d.mkdir()
 
-    with pytest.raises(dags.exceptions.NoRescueFileFound):
+    with pytest.raises(htcondor.dags.exceptions.NoRescueFileFound):
         dags.find_rescue_file(d, "dagfile.dag")
 
 

@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import htcondor
-import htcondor_dags as dags
+from htcondor import dags
 
 # We will split words.txt into five chunks.
 NUM_CHUNKS = 5

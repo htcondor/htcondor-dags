@@ -4,7 +4,7 @@ from pathlib import Path
 import glob
 
 import htcondor
-import htcondor_dags as dags
+from htcondor import dags
 
 analysis_dag = dags.DAG()
 

@@ -15,8 +15,8 @@
 
 from pathlib import Path
 
-import htcondor_dags as dags
-from htcondor_dags.writer import DAGWriter
+from htcondor import dags
+from htcondor.dags.writer import DAGWriter
 
 from .conftest import s, dagfile_lines
 

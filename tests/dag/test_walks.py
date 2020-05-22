@@ -15,7 +15,7 @@
 
 import pytest
 
-import htcondor_dags as dags
+from htcondor import dags
 
 
 def test_walk_depth_first(dag):

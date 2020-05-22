@@ -15,8 +15,7 @@
 
 import pytest
 
-import htcondor_dags as dags
-
+from htcondor import dags
 
 LAYER_INDEX_NAME = [("foo", 0, "foo:0"), ("foo", 5, "foo:5"), ("foo", 10, "foo:10")]
 
