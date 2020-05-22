@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Dict, Union, Any, Iterator, Callable, Tuple
+from typing import Optional, Dict, Union, Any, Iterator, Callable, Tuple, Set
 import logging
 
 import collections
@@ -42,17 +42,22 @@ class DotConfig:
         self.overwrite = overwrite
         self.include_file = include_file if include_file is None else Path(include_file)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return utils.make_repr(self, ("path", "update", "overwrite", "include_file"))
 
 
 class NodeStatusFile:
-    def __init__(self, path: Path, update_time=None, always_update=False):
+    def __init__(
+        self,
+        path: Path,
+        update_time: Optional[int] = None,
+        always_update: Optional[bool] = False,
+    ):
         self.path = Path(path)
         self.update_time = update_time
         self.always_update = always_update
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return utils.make_repr(self, ("path", "update_time", "always_update"))
 
 
@@ -264,7 +269,7 @@ class DAG:
         containing its children.
         The :class:`Nodes` will be empty if the node has no children.
         """
-        d = {n: set() for n in self.nodes}
+        d: Dict[node.BaseNode, Set[node.BaseNode]] = {n: set() for n in self.nodes}
         for parent, child in self.edges:
             d[parent].add(child)
 
@@ -277,7 +282,7 @@ class DAG:
         containing its parents.
         The :class:`Nodes` will be empty if the node has no parents.
         """
-        d = {n: set() for n in self.nodes}
+        d: Dict[node.BaseNode, Set[node.BaseNode]] = {n: set() for n in self.nodes}
         for parent, child in self.edges:
             d[child].add(parent)
 
@@ -306,7 +311,7 @@ class DAG:
             if len(children) == 0
         )
 
-    def describe(self) -> str:
+    def describe(self) -> str:  # pragma: no cover
         """Return a tabular description of the DAG's structure."""
         rows = []
 
@@ -372,7 +377,7 @@ class EdgeStore:
         parent: node.BaseNode,
         child: node.BaseNode,
         edge: Optional[edges.BaseEdge] = None,
-    ):
+    ) -> None:
         if edge is None:
             edge = edges.ManyToMany()
         self.edges[(parent, child)] = edge
@@ -396,14 +401,14 @@ class NodeStore:
     def __init__(self):
         self.nodes = {}
 
-    def add(self, *nodes: node.BaseNode):
+    def add(self, *nodes: node.BaseNode) -> None:
         for n in nodes:
             if isinstance(n, node.BaseNode):
                 self.nodes[n.name] = n
             elif isinstance(n, node.Nodes):
                 self.add(self, n)
 
-    def remove(self, *nodes: node.BaseNode):
+    def remove(self, *nodes: node.BaseNode) -> None:
         for n in nodes:
             if isinstance(n, str):
                 self.nodes.pop(n, None)
@@ -412,7 +417,7 @@ class NodeStore:
             elif isinstance(n, node.Nodes):
                 self.remove(n)
 
-    def __getitem__(self, n: Union[node.BaseNode, str]):
+    def __getitem__(self, n: Union[node.BaseNode, str]) -> node.BaseNode:
         if isinstance(n, str):
             return self.nodes[n]
         elif isinstance(n, node.BaseNode):

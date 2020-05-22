@@ -69,7 +69,7 @@ def rescue_file_text():
 
 
 def test_rescue(rescue_dag, rescue_file_text):
-    _rescue(rescue_dag, rescue_file_text)
+    _rescue(rescue_dag, rescue_file_text, formatter=dags.SimpleFormatter())
 
     assert rescue_dag._nodes["a"].done == {0: True}
     assert rescue_dag._nodes["b"].done == {0: True}

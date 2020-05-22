@@ -33,7 +33,7 @@ class DAGAbortCondition:
         self.node_exit_value = node_exit_value
         self.dag_return_value = dag_return_value
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return utils.make_repr(self, ("node_exit_value", "dag_return_value"))
 
 
@@ -72,7 +72,7 @@ class Script:
         self.retry_status = retry_status
         self.retry_delay = retry_delay
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return utils.make_repr(
             self, ("executable", "arguments", "retry", "retry_status", "retry_delay")
         )
@@ -145,8 +145,12 @@ class BaseNode(abc.ABC):
         self.name = name
 
         self.dir = Path(dir) if dir is not None else None
-        self.noop = noop
-        self.done = done
+        if isinstance(noop, bool):
+            noop = {0: noop}
+        self.noop: Dict[int, bool] = noop
+        if isinstance(done, bool):
+            done = {0: done}
+        self.done: Dict[int, bool] = done
 
         self.retries = retries
         self.retry_unless_exit = retry_unless_exit
@@ -157,6 +161,9 @@ class BaseNode(abc.ABC):
         self.pre = pre
         self.pre_skip_exit_code = pre_skip_exit_code
         self.post = post
+
+    def __len__(self):
+        return 1
 
     def __repr__(self) -> str:
         return utils.make_repr(self, ("name",))
@@ -423,6 +430,9 @@ class NodeLayer(BaseNode):
         if vars is None:
             vars = [{}]
         self.vars = list(vars)
+
+    def __len__(self):
+        return len(self.vars)
 
 
 class SubDAG(BaseNode):
