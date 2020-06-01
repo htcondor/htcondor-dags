@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Dict, Union, Any, Iterator, Callable, Tuple, Set
+from typing import Optional, Dict, Union, Any, Iterator, Callable, Tuple, Set, Mapping
 import logging
 
 import collections
@@ -89,9 +89,9 @@ class DAG:
 
     def __init__(
         self,
-        dagman_config: Optional[Dict[str, Any]] = None,
-        dagman_job_attributes: Optional[Dict[str, Any]] = None,
-        max_jobs_by_category: Optional[Dict[str, int]] = None,
+        dagman_config: Optional[Mapping[str, Any]] = None,
+        dagman_job_attributes: Optional[Mapping[str, Any]] = None,
+        max_jobs_by_category: Optional[Mapping[str, int]] = None,
         dot_config: Optional[DotConfig] = None,
         jobstate_log: Optional[Path] = None,
         node_status_file: Optional[NodeStatusFile] = None,
