@@ -325,7 +325,6 @@ class DAGWriter:
                     else (self.join_node_name(c),)
                 )
 
-                print(parent_node_names, child_node_names)
                 yield "PARENT {} CHILD {}".format(
                     " ".join(parent_node_names), " ".join(child_node_names)
                 )
