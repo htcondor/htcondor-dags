@@ -293,7 +293,7 @@ class DAGWriter:
 
     def get_indexes_to_node_names(self, n: node.BaseNode) -> Dict[int, str]:
         if isinstance(n, node.SubDAG):
-            return {0: n.name}
+            return {0: self.get_node_name(n, 0)}
         elif isinstance(n, node.NodeLayer):
             return {idx: self.get_node_name(n, idx) for idx in range(len(n.vars))}
         else:
@@ -315,15 +315,17 @@ class DAGWriter:
 
             for p, c in edge.get_edges(parent_layer, child_layer, self.join_factory):
                 parent_node_names = (
-                    (parent_layer_nodes[_] for _ in p)
+                    [parent_layer_nodes[_] for _ in p]
                     if not isinstance(p, edges.JoinNode)
                     else (self.join_node_name(p),)
                 )
                 child_node_names = (
-                    (child_layer_nodes[_] for _ in c)
+                    [child_layer_nodes[_] for _ in c]
                     if not isinstance(c, edges.JoinNode)
                     else (self.join_node_name(c),)
                 )
+
+                print(parent_node_names, child_node_names)
                 yield "PARENT {} CHILD {}".format(
                     " ".join(parent_node_names), " ".join(child_node_names)
                 )
